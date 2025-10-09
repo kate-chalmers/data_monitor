@@ -1,0 +1,13 @@
+name: inequalities-dashboard
+title: inequalities-dashboard
+username: cds-tools
+account: cds-tools
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 15164747
+bundleId: 10966531
+url: https://cds-tools.shinyapps.io/inequalities-dashboard/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: NO DEPLOY

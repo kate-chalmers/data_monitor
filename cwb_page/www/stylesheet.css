@@ -1,0 +1,212 @@
+@import url('https://fonts.googleapis.com/css?family=Poppins:400,500,600,700,800,900');
+@import url('https://fonts.googleapis.com/css?family=Sora:400,500,600,700,800,900');
+@import url('https://fonts.googleapis.com/css?family=Noto Sans:400,500,600,700,800,900');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css')
+
+* {
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 1.5rem;
+  color: #586179;
+}
+
+::-webkit-scrollbar {
+    display: none;
+}
+
+body > div.container-fluid > div:nth-child(7) > div.form-group.shiny-input-container {
+  margin-bottom: 0px;
+}
+
+.fa-info-circle {
+  color:cadetblue;
+}
+
+.dim-icon-hover {
+  position: relative
+}
+
+.dim-icon-text {
+  font-size:7px;
+  line-height: 7px;
+}
+
+.dim-icon-hover .dim-icon-text {
+  display: none;
+  position: absolute;
+  /*bottom: 0;
+  width: 100%;
+  padding: 10px;
+  background: rgba(255,255,255,.8);*/
+}
+
+.dim-icon-hover:hover .dim-icon-text {
+  display: block
+}
+
+.card {
+  width: 100%;
+  border: solid 1.5px lightgrey;
+  height: 150px;
+  padding: 0 !important;
+  background: #FFFFFF !important;
+  overflow: hidden;
+  border-radius: 25px;
+  display: block;
+}
+
+.card-grow {
+  transition: all .2s ease-in-out;
+}
+
+.card-grow:hover {
+  transform: scale(1.1);
+  cursor: pointer;
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 1.5s;
+  transform-style: preserve-3d;
+}
+
+.card:hover .card-inner {
+  transform: rotateY(180deg);
+  cursor: pointer;
+}
+
+.card-front,
+.card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  display: flex;
+  flex-direction: column; 
+  justify-content: space-between; 
+  border-radius: 25px;
+  padding: 5px;
+}
+
+.card-front {
+  background: #FFFFFF;
+  line-height: 100%;
+}
+
+.card-back {
+  background: #FFFFFF;
+  transform: rotateY(180deg);
+  padding: 0px;
+}
+
+.card-front .plot-container {
+  position: absolute;
+  bottom: 0; 
+  width: 100%;
+  height: 50%; 
+}
+
+.cluster-header {
+  font-weight: bold;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-15px); }
+  60% { transform: translateY(-8px); }
+}
+
+.bounce {
+  animation: bounce 1s ease-in-out 3; /* 3 bounces per trigger */
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-15px); }
+  60% { transform: translateY(-8px); }
+}
+
+.bounce { animation: bounce 1s ease-in-out 3; }
+
+.bounce-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  font-weight: 700;
+  font-size: 14px;
+  color: #444;
+  display: block !important;   
+  opacity: 0;                  
+  transition: opacity .2s ease;
+  pointer-events: none;        
+  z-index: 9999;
+  text-align: center;
+}
+.bounce-label.show { opacity: 1 !important; }
+
+.card.bounce + .bounce-label,
+.card-wrapper .bounce + .bounce-label {
+  display: block !important;
+}
+
+.bounce-label-off { display: none; }
+
+
+
+/* Let the face be a clean canvas; we'll add padding only to the top block */
+.card-front { padding: 0; position: relative; display: flex; flex-direction: column; height: 100%; }
+
+/* Top text block still has some breathing room */
+.card-top { padding: 6px 10px 0 10px; }
+
+/* Full-bleed sparkline:
+   - Overhang horizontally by the border thickness so it sits under the border
+   - Fill the bottom 60% (matching your inline style)
+*/
+.sparkline-wrap {
+  position: absolute;
+  left: -1.5px;               /* overextend to sit under the 1.5px border */
+  right: -1.5px;
+  bottom: 0;
+  height: 60%;                /* matches your style="height:60%" */
+}
+
+/* Ensure the widget/canvas fills its wrapper */
+.sparkline-wrap .html-widget,
+.sparkline-wrap .echarts4r,
+.sparkline-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* Keep gutters zero inside cards so widths don't drift */
+.card .row { margin-left: 0 !important; margin-right: 0 !important; }
+.card [class^="col-"], .card [class*=" col-"] { padding-left: 0 !important; padding-right: 0 !important; }
+
+
+@media (max-width: 768px) {
+  /* Disable hover zoom */
+  .card-grow:hover {
+    transform: none !important;
+  }
+
+  /* Disable pointer-style hover cues */
+  .card-grow { cursor: default !important; }
+
+  /* Optional: hide any hover-based tooltips */
+  .dim-icon-hover .dim-icon-text {
+    display: none !important;
+  }
+
+  /* Optional: if you want to remove bounce label prompts too */
+  .bounce-label {
+    display: none !important;
+  }
+}
