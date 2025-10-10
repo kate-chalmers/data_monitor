@@ -3,11 +3,11 @@ library(shiny)
 library(tidyverse)
 library(echarts4r)
 library(shinyjs)
-
-# Non-essential
 library(shinyBS)
+# Non-essential
 library(shinycssloaders)
 source("./utils.R")
+options(scipen=999)
 
 last_updated <- file.info("./data/final dataset.RDS") %>% pull(mtime) %>% format(., "%d %B, %Y")
 

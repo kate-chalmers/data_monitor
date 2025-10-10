@@ -14,19 +14,9 @@ ui <- fluidPage(shinyjs::useShinyjs(),
                           title = "Download the data",
                           trigger = NULL,
                           uiOutput("defText"))
-                  
                 ),
                 br(),
                 br(),
-                # fluidRow(
-                #   column(1),
-                #   column(10, align = "center",
-                #          HTML("<b style='font-size:2rem;face:italic'>How to interpret the cards</b><br><br>"),
-                #          HTML("<img src='tutorial.svg' width=600 height=300>")),
-                #   column(1)
-                # ),
-                # br(),
-                # br(),
                 fluidRow(align = "center",
                          selectInput("countrySelector",
                                      label = "Choose a country",
@@ -74,7 +64,7 @@ ui <- fluidPage(shinyjs::useShinyjs(),
                                          Since 2010, this number of indicators have...
                                          <br>
                                          <br>"),
-                                         div(class = "card-grow", uiOutput("currentWellbeingSummary")),
+                                         div(class = "card-grow", uiOutput("futureWellbeingSummary")),
                                          HTML(
                                            "<br>
                                             <span style='color:#999999;'>●</span> not enough data
@@ -89,66 +79,14 @@ ui <- fluidPage(shinyjs::useShinyjs(),
                 ),
                 br(),
                 br(),
-                fluidRow(class="first-set", uiOutput("material_boxes") %>% withSpinner(color="#0dc5c1")),
+                fluidRow(class="first-set", uiOutput("nature_boxes") %>% withSpinner(color="#0dc5c1")),
                 br(),
-                fluidRow(uiOutput("quality_boxes") %>% withSpinner(color="#0dc5c1")),
+                fluidRow(uiOutput("econ_boxes") %>% withSpinner(color="#0dc5c1")),
                 br(),
-                fluidRow(uiOutput("community_boxes") %>% withSpinner(color="#0dc5c1")),
+                fluidRow(uiOutput("human_boxes") %>% withSpinner(color="#0dc5c1")),
                 br(),
-                # hr(),
-                # fluidRow(align = "center",
-                #          column(1),
-                #          column(10,
-                #                 HTML("<b style='font-size:28px;margin-bottom:5px;'>Resources for Future Well-being</b><br>
-                #                      The systemic resources that underpin future well-being over time are expressed in terms of four types of capital: Natural, Human, Social, Economic."),
-                #                 br(),
-                #                 br(),
-                #                 fluidRow(
-                #                   column(2),
-                #                   column(8, 
-                #                          HTML("
-                #                          Since 2010, this number of indicators have...
-                #                          <br>
-                #                          <br>"),
-                #                          div(class = "card-grow", uiOutput("futureWellbeingSummary")),
-                #                          HTML(
-                #                            "<br>
-                #                             <span style='color:#999999;'>●</span> not enough data
-                #                             <span style='color:#CF597E;'>●</span> deteriorated  
-                #                             <span style='color:goldenrod;'>●</span> no significant change 
-                #                             <span style='color:#0F8554;'>●</span> improved")
-                #                   ),
-                #                   column(2)
-                #                 )
-                #          ),
-                #          column(1)
-                # ),
-                # br(),
-                # br(),
-                # fluidRow(
-                #   column(1),
-                #   column(10, uiOutput("nature_boxes") %>% withSpinner(color="#0dc5c1")),
-                #   column(1)
-                # ),
-                # br(),
-                # fluidRow(
-                #   column(1),
-                #   column(10, uiOutput("econ_boxes") %>% withSpinner(color="#0dc5c1")),
-                #   column(1)
-                # ),
-                # br(),
-                # fluidRow(
-                #   column(1),
-                #   column(10, uiOutput("social_boxes") %>% withSpinner(color="#0dc5c1")),
-                #   column(1)
-                # ),
-                # br(),
-                # fluidRow(
-                #   column(1),
-                #   column(10, uiOutput("human_boxes") %>% withSpinner(color="#0dc5c1")),
-                #   column(1)
-                # ), 
-                # br(),
+                fluidRow(uiOutput("social_boxes") %>% withSpinner(color="#0dc5c1")),
+                br(),
                 fluidRow(HTML("&nbsp<br><br><br>"))
                 
                 
@@ -159,9 +97,9 @@ server <- function(input, output, session) {
   
   output$section_title <- renderUI({
     if(countryName() == "OECD Average") {
-      HTML(paste0("<b style='font-size:28px;margin-bottom:5px;'>Current well-being in the OECD</b><br>"))
+      HTML(paste0("<b style='font-size:28px;margin-bottom:5px;'>Resources for future well-being in the OECD</b><br>"))
     } else {
-      HTML(paste0("<b style='font-size:28px;margin-bottom:5px;'>Current well-being in ", countryName(),"</b><br>"))
+      HTML(paste0("<b style='font-size:28px;margin-bottom:5px;'>Resources for future well-being in ", countryName(),"</b><br>"))
     }
   })
   
@@ -194,28 +132,17 @@ server <- function(input, output, session) {
       avg_vals <- avg_vals %>% arrange(arrangement) 
     }
     
-    mats_ts <- ts_vals %>% filter(cat %in% c("1", "2", "3")) %>% split(f = .$measure)
-    qual_ts <- ts_vals %>% filter(cat %in% c("5", "6", "9", "10", "11")) %>% split(f = .$measure)
-    coms_ts <- ts_vals %>% filter(cat %in% c("4", "7", "8")) %>% split(f = .$measure)
     nature_ts <- ts_vals %>% filter(cat %in% c("12")) %>% split(f = .$measure)
     human_ts <- ts_vals %>% filter(cat %in% c("13")) %>% split(f = .$measure)
     social_ts <- ts_vals %>% filter(cat %in% c("14")) %>% split(f = .$measure)
     econ_ts <- ts_vals %>% filter(cat %in% c("15")) %>% split(f = .$measure)
     
-    mats <- avg_vals %>% filter(cat %in% c("1", "2", "3"))
-    qual <- avg_vals %>% filter(cat %in% c("5", "6", "9", "10", "11"))
-    coms <- avg_vals %>% filter(cat %in% c("4", "7", "8"), !measure == "8_2")
     nature <- avg_vals %>% filter(cat %in% c("12"))
     human <- avg_vals %>% filter(cat %in% c("13"))
     social <- avg_vals %>% filter(cat %in% c("14"))
     econ <- avg_vals %>% filter(cat %in% c("15"))
     
-    
-    # CWB
-    output$currentWellbeingSummary <- renderUI({ pillBox(avg_vals, cwb_indicator_text_filter) })
-    
-    # FWB
-    # output$futureWellbeingSummary <- renderUI({ pillBox(avg_vals, fwb_indicator_text_filter) })
+    output$futureWellbeingSummary <- renderUI({ pillBox(avg_vals, fwb_indicator_text_filter) })
     
     cardBuilder <- function(point_avg, ts_avg, cluster_name) {
       
@@ -362,13 +289,13 @@ server <- function(input, output, session) {
                    div(style="z-index:0;margin-left:5px;margin-right:5px;", class = paste("card", point_avg[i,]$measure, if (i == 1 && cluster_name == "material") "bounce" else NULL),
                        div(class = paste0(if (i == 1 && cluster_name == "material") "bounce-label" else "bounce-label-off"), "Click cards to download data"),
                        div(class = "card-front",
-                           div(class = "card-top", style="height:40%;z-index:2;",
+                           div(class = "card-top", style="height:40%;",
                                fluidRow(align = "center",
                                         uiOutput(paste0(cluster_name, "_icon_", i)),
                                         uiOutput(paste0(cluster_name, "_cards_", i))
                                )
                            ),
-                           div(class = "sparkline-wrap", style="height:60%;z-index:1;",
+                           div(class = "sparkline-wrap", style="height:60%;",
                                    echarts4rOutput(paste0(cluster_name, "_sparkline_", i), height="100%")
                            )
                        )
@@ -382,13 +309,10 @@ server <- function(input, output, session) {
       
     }
     
-    output$material_boxes <- renderUI({ cardBuilder(mats, mats_ts, "material") })
-    output$quality_boxes <- renderUI({ cardBuilder(qual, qual_ts, "quality") })
-    output$community_boxes <- renderUI({ cardBuilder(coms, coms_ts, "community") })
-    # output$nature_boxes <- renderUI({ cardBuilder(nature, nature_ts, "nature") })
-    # output$social_boxes <- renderUI({ cardBuilder(social, social_ts, "social") })
-    # output$human_boxes <- renderUI({ cardBuilder(human, human_ts, "human") })
-    # output$econ_boxes <- renderUI({ cardBuilder(econ, econ_ts, "econ") })
+    output$nature_boxes <- renderUI({ cardBuilder(nature, nature_ts, "nature") })
+    output$social_boxes <- renderUI({ cardBuilder(social, social_ts, "social") })
+    output$human_boxes <- renderUI({ cardBuilder(human, human_ts, "human") })
+    output$econ_boxes <- renderUI({ cardBuilder(econ, econ_ts, "econ") })
     
   })
   
