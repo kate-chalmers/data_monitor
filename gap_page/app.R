@@ -2,25 +2,7 @@ source("./global.R")
 
 ui <- fluidPage(shinyjs::useShinyjs(),
                 tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "stylesheet.css")),
-                tags$script(HTML("
-$(document).ready(function() {
-  $(document).on('click', '.card', function() {
-    var classList = Array.from(this.classList); // avoids regex escaping
-    var anyUnderscore = classList.find(c => c.includes('_')) || null;
-    Shiny.setInputValue('clicked_class', anyUnderscore, {priority: 'event'});
-
-    // NEW: whitelist the dimension classes
-    var dimClasses = ['gender_dim','age_dim','educ_dim'];
-    var measureClass = classList.find(c => dimClasses.includes(c)) || null;
-    var measure = measureClass ? measureClass.replace(/_dim$/, '') : null;
-
-    Shiny.setInputValue('clicked_class2', measureClass, {priority: 'event'});
-    Shiny.setInputValue('clicked_dim', measure, {priority: 'event'});
-
-    $('#modal1').modal('show');
-  });
-});
-      ")),
+                tags$head(tags$script(src="modal.js")),
                 bsModal(id = "modal1",
                         title = "Download the data",
                         trigger = NULL,
@@ -34,10 +16,6 @@ $(document).ready(function() {
                 fluidRow(align="center",
                          column(2),
                          column(8, align = "center",
-                                HTML("<img src='tutorial.svg' width=600 height=300>"),
-                                br(),
-                                br(),
-                                br(),
                                 selectInput("countrySelector",
                                             label = "Choose a country",
                                             choices = list(
@@ -47,7 +25,7 @@ $(document).ready(function() {
                                             ),
                                             selected = "OECD"
                                 ),
-                                HTML("<span style='font-size:9px'>Rank is not shown when an average or non-OECD country is selected</span>"),
+                                HTML("<span style='font-size:9px'>Tier is not shown when an average or a non-OECD country is selected</span>"),
                                 br(),
                                 br(),
                                 br(),
@@ -416,11 +394,26 @@ server <- function(input, output, session) {
 
     lapply(c("F", "M", "YOUNG", "MID", "OLD", "ISCED11_2_3", "ISCED11_5T8"), function(dim_val) {
 
+      # dat_country <- full_dat %>% filter(ref_area == "OECD")
+      # dim_val <- "YOUNG"
+
       priority <- c("Improving", "No significant change", "Deteriorating", "Not enough data")
+
+      dim_color <- dat_country() %>%
+        filter(dimension == dim_val) %>%
+        distinct(dimension_color) %>%
+        drop_na() %>%
+        pull
+
+      dim_name <- dat_country() %>%
+        filter(dimension == dim_val) %>%
+        distinct(dimension_long) %>%
+        drop_na() %>%
+        pull
 
       plot_df <- dat_country() %>%
         filter(measure %in% measures_by_cluster(), dimension == dim_val) %>%
-        select(measure, dimension_long, perf_val, perf_val_name) %>%
+        select(measure, perf_val, perf_val_name) %>%
         distinct() %>%
         mutate(
           # remove bc cleaned
@@ -439,7 +432,7 @@ server <- function(input, output, session) {
             TRUE                    ~ "#ececec"
           )
         ) %>%
-        count(dimension_long, perf_val, perf_val_light, perf_val_name) %>%
+        count(perf_val, perf_val_light, perf_val_name) %>%
         mutate(
           n   = ifelse(is.na(n), 0, n),
           pct = 100 * n / sum(n)
@@ -454,7 +447,7 @@ server <- function(input, output, session) {
           html = case_when(
             first_seg & !last_seg ~ paste0("<span style='", standard_style,
                                "border: solid 1.5px ", perf_val, ";border-right:0px;",
-                               "border-radius: 0px; width:", pct, "%;",
+                               "border-radius: 25px 0px 0px 25px; width:", pct, "%;",
                                "background:", perf_val_light,";'><b>", n, "</b></span>"),
             last_seg & !first_seg ~ paste0("<span style='", standard_style,
                               "border: solid 1.5px ", perf_val, ";border-left:0px;",
@@ -462,7 +455,7 @@ server <- function(input, output, session) {
                               "background:", perf_val_light,";'><b>", n, "</b></span>"),
             first_seg & last_seg ~ paste0("<span style='", standard_style,
                                            "border: solid 1.5px ", perf_val, ";",
-                                           "border-radius: 0px 25px 25px 0px; width:", pct, "%;",
+                                           "border-radius: 25px; width:", pct, "%;",
                                            "background:", perf_val_light,";'><b>", n, "</b></span>"),
             TRUE ~ paste0("<span style='", standard_style,
                           "border: solid 1.5px ", perf_val, ";border-right:0px;border-left:0px;",
@@ -472,9 +465,9 @@ server <- function(input, output, session) {
 
       output[[paste0(dim_label, "_summary_", dim_val)]] <- renderUI({
 
-        fluidRow(style="margin-bottom:10px",
-                 column(2, align="right", style="margin-right:0px;padding-left:0px;", HTML(paste0("<span style='font-size:1rem;'>", as.character(unique(plot_df$dimension_long)), "</span>"))),
-                 column(10, class="card-grow", align = "center", style="margin-left:0px;padding-left:0px;", HTML(paste0(plot_df$html, collapse = "")))
+        div(
+          fluidRow(align="center", style="margin-right:0px;padding-left:0px;", HTML(paste0("<b style='font-size:1rem;color:", dim_color, "'>", dim_name, "</b>"))),
+          fluidRow(class="card-grow", align = "center", style="margin-left:0px;padding-left:0px;", HTML(paste0(plot_df$html, collapse = "")))
         )
 
       })
@@ -604,21 +597,19 @@ server <- function(input, output, session) {
         latest_year_text <- td %>% filter(!is.na(latest_year)) %>% pull(latest_year) %>% unique()
         earliest_year_text <- td %>% filter(!is.na(earliest_year)) %>% pull(earliest_year) %>% unique()
         year_text <- ifelse(length(latest_year_text) == 0, " ", paste0(earliest_year_text, "-", latest_year_text))
-        HTML(paste0("<div class='texter'>
-                      <b>", unique(td$label), "</b>
+        HTML(paste0("<b>", unique(td$label), "</b>
                       <br>
                       <span style='display:inline-block'>", unique(td$unit), "<br>
                         <i>", year_text,"</i>
-                      </span>
-                    </div>"))
+                      </span>"))
       })
 
       output[[paste0(dim_label, "_population_value_", i)]] <- renderUI({
         dl <- dat_total(); req(nrow(dl))
         td <- dl %>% filter(measure == measure_name)
         if (!nrow(td)) return(div())
-        latest_value_total <- td %>% pull(obs_value) %>% unique()
-        HTML(paste0("<span style='font-size:2.5rem'>", latest_value_total, "</span>"))
+        latest_value_total <- td %>% pull(value_tidy) %>% unique()
+        HTML(paste0("<b>Population average</b><br><span style='font-size:2rem;line-height:2rem'>", latest_value_total, "</span>"))
       })
 
       for(dv in c("F", "M", "YOUNG", "MID", "OLD", "ISCED11_2_3", "ISCED11_5T8")) {

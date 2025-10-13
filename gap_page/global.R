@@ -2,12 +2,10 @@
 library(shiny)
 library(tidyverse)
 library(echarts4r)
-library(plotly)
 library(shinyjs)
-library(countrycode)
-library(tidymodels)
+
 # Non-essential
-library(bslib)
+# library(bslib)
 library(bsicons)
 library(shinyBS)
 library(shinycssloaders)
