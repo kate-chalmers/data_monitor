@@ -1,720 +1,11 @@
-source("./global.R")
-
-threePointAverage <- function(full_df, dimension_name) {
-
-  # dimension_name <- c("_T")
-  # full_df <- tidy_dat
-
-  full_df <- full_df %>% filter(ref_area %in% oecd_countries)
-
-  # Remove any years that are not complete enough to be considered
-  filtered_df <- full_df %>%
-    group_by(measure, unit_measure, time_period, dimension) %>%
-    mutate(n=n()) %>%
-    ungroup() %>%
-    filter(!n < 5)
-
-  # Set earliest value band
-  earliest_df <- filtered_df %>%
-    # filter(time_period <= 2015) %>%
-    group_by(ref_area, measure, unit_measure, dimension) %>%
-    filter(time_period == min(time_period)) %>%
-    ungroup() %>%
-    mutate(label = "earliest")
-
-  # # Set precovid value band
-  # precovid_df <- filtered_df %>%
-  #   filter(time_period %in% 2016:2019) %>%
-  #   group_by(ref_area, measure, unit_measure, dimension) %>%
-  #   filter(time_period == max(time_period)) %>%
-  #   mutate(label = "precovid")
-
-  # Set latest value band
-  latest_df <- filtered_df %>%
-    # filter(time_period > 2019) %>%
-    group_by(ref_area, measure, unit_measure, dimension) %>%
-    filter(time_period == max(time_period)) %>%
-    ungroup() %>%
-    mutate(label = "latest")
-
-  # Combine groups
-  tidy_df <- rbind(earliest_df, latest_df) %>%
-    mutate(unit_measure = str_remove_all(unit_measure, "_SUB"))
-
-  # OECD average by dimension -----------------------------------------------
-
-  # Filter dimensions wanted and remove _SUB in unit_measure (for matching)
-  prepped_df <- tidy_df %>% filter(dimension %in% dimension_name)
-
-  # List measures available in dimensions specified
-  measures_avail <- prepped_df %>% distinct(measure) %>% pull()
-
-  cleaned_df <- c()
-  for(measure_name in measures_avail) {
-
-    # List unit measures available in measure specified
-    unit_measures_avail <- prepped_df %>% filter(measure == measure_name) %>% distinct(unit_measure) %>% pull()
-
-    for(unit_measure_name in unit_measures_avail) {
-
-      # Filter by each measure, unit_measure and dimension from the FULL data available for indicator
-      short_df <- tidy_df %>% filter(measure == measure_name,
-                                     unit_measure == unit_measure_name,
-                                     dimension %in% c(dimension_name, "_T"))
-
-      # List full set of countries available for indicator for full dimension
-      ref_area_full <- short_df %>% distinct(ref_area) %>% pull()
-
-      # Remove any countries that are missing from at least one of the three time periods
-      removals <- short_df %>%
-        group_by(label, dimension) %>%
-        complete(ref_area = ref_area_full) %>%
-        ungroup() %>%
-        filter(is.na(obs_value)) %>%
-        distinct(ref_area) %>%
-        pull()
-
-      # Loop over dimension values
-      for(dimension_name_short in dimension_name) {
-
-        short_df <- prepped_df %>%
-          filter(measure == measure_name,
-                 unit_measure == unit_measure_name,
-                 dimension == dimension_name_short) %>%
-          # Remove countries that have missing values/aren't available for all dimension
-          filter(!ref_area %in% removals) %>%
-          group_by(measure, unit_measure, dimension, label) %>%
-          mutate(n = n()) %>%
-          ungroup()
-
-        cleaned_df <- rbind(cleaned_df, short_df)
-
-      }
-
-    }
-  }
-
-  # Calculate the average by measure, dimension, time period
-  horizontal_average <- cleaned_df %>%
-    group_by(measure, unit_measure, dimension, label) %>%
-    mutate(obs_value = mean(obs_value, na.rm=T),
-           countries = paste0(ref_area, collapse = ", "),
-           ref_area = case_when(!n==38 ~ paste0("OECD ", n), TRUE ~ "OECD"),
-           time_period = case_when(label %in% c("precovid", "latest") ~ max(time_period), TRUE ~ min(time_period))) %>%
-    slice(1) %>%
-    ungroup()
-
-  # Check same value is used across age bands
-  nonMatchHorizontal <- horizontal_average %>%
-    group_by(measure, unit_measure, dimension) %>%
-    mutate(var = var(n)) %>%
-    ungroup() %>%
-    filter(!var == 0) %>%
-    nrow()
-
-  # Stop function if any number mismatches exist
-  if(nonMatchHorizontal != 0L) {
-    stop(print("Horizontal averages do not match! Check script"))
-  }
-
-  # Create list of countries used
-  match_list <- horizontal_average %>%
-    select(measure, unit_measure, ref_area = countries) %>%
-    separate_rows(ref_area) %>%
-    distinct()
-
-  # Match countries to create overall OECD average --------------------------
-  # This is redundant if dimension is set to _T but useful for horizontal comparisons
-
-  oecd_average <- tidy_df %>%
-    filter(dimension == "_T") %>%
-    # Drop any countries not in match list by merging
-    merge(match_list, by = c("measure", "unit_measure", "ref_area")) %>%
-    group_by(measure, unit_measure, dimension, label) %>%
-    mutate(n = n(),
-           obs_value = mean(obs_value, na.rm=T),
-           ref_area = case_when(!n==38 ~ paste0("OECD ", n), TRUE ~ "OECD"),
-           time_period = case_when(label %in% c("precovid", "latest") ~ max(time_period),
-                                   TRUE ~ min(time_period))) %>%
-    slice(1) %>%
-    ungroup()
-
-  # Check same value is used across age bands
-  nonMatchAverage <- oecd_average %>%
-    group_by(measure, unit_measure, dimension) %>%
-    mutate(var = var(n)) %>%
-    ungroup() %>%
-    filter(!var == 0) %>%
-    nrow()
-
-  # Stop function if any number mismatches exist
-  if(nonMatchAverage != 0L) {
-    stop(print("OECD averages do not match! Check script"))
-  }
-
-  # Test if both horizontal and OECD averages match
-  test_horiz <- horizontal_average %>% select(measure, unit_measure, horizon = ref_area) %>% distinct()
-  test_oecd <- oecd_average %>% select(measure, unit_measure, average = ref_area) %>% distinct()
-
-  # Count number of mismatches
-  testMatch <- test_horiz %>% merge(test_oecd) %>% filter(!horizon == average) %>% nrow()
-
-  # Stop function if any number mismatches exist
-  if(testMatch != 0L) {
-    stop(print("OECD and horizontal averages do not match! Check script"))
-  }
-
-  # Return oecd average only if _T otherwise horizontal averages + oecd average
-  if(all(dimension_name == "_T")) {
-    full_average <- oecd_average %>% select(-n)
-  } else {
-    full_average <- oecd_average %>%
-      select(-n, -time_period) %>%
-      rbind(horizontal_average %>% select(-countries, -n, -time_period))
-  }
-
-  return(full_average)
-
-}
-
-timeSeriesAverage <- function(full_df, dimension_name) {
-
-  # dimension_name <- c("F", "M")
-  # full_df <- full_dat
-
-  full_df <- full_df %>% filter(ref_area %in% oecd_countries)
-
-  # Remove any years that are not complete enough to be considered
-  tidy_df <- full_df %>%
-    mutate(unit_measure = str_remove_all(unit_measure, "_SUB")) %>%
-    # Calculate sample size
-    group_by(measure, unit_measure, time_period, dimension) %>%
-    mutate(n=n()) %>%
-    ungroup() %>%
-    # Remove any years that have < 10 sample (removes data from request reporting in non-SILC years or spotty recent data)
-    filter(!n < 10)
-
-  # OECD time series by dimension -----------------------------------------
-
-  prepped_df <- tidy_df %>% filter(dimension %in% dimension_name)
-
-  # List measures available in dimensions specified
-  measures_avail <- prepped_df %>% distinct(measure) %>% pull()
-
-  cleaned_df <- c()
-  for(measure_name in measures_avail) {
-
-    # List unit measures available in measure specified
-    unit_measures_avail <- prepped_df %>% filter(measure == measure_name) %>% distinct(unit_measure) %>% pull()
-
-    for(unit_measure_name in unit_measures_avail) {
-
-      # Filter by each measure, unit_measure and dimension from the FULL data available for indicator
-      short_df <- tidy_df %>% filter(measure == measure_name,
-                                     unit_measure == unit_measure_name,
-                                     dimension %in% c(dimension_name, "_T"))
-
-      # List full set of countries available for indicator for full dimension
-      ref_area_full <- short_df %>% distinct(ref_area) %>% pull()
-
-      # Remove any countries that are missing from at least one of the three time periods
-      removals <- short_df %>%
-        group_by(time_period, dimension) %>%
-        complete(ref_area = ref_area_full) %>%
-        ungroup() %>%
-        filter(is.na(obs_value)) %>%
-        distinct(ref_area) %>%
-        pull()
-
-      # Loop over dimension values
-      for(dimension_name_short in dimension_name) {
-
-        short_df <- prepped_df %>%
-          filter(measure == measure_name,
-                 unit_measure == unit_measure_name,
-                 dimension == dimension_name_short) %>%
-          # Remove countries that have missing values/aren't available for all dimension
-          filter(!ref_area %in% removals) %>%
-          group_by(measure, unit_measure, dimension, time_period) %>%
-          mutate(n = n()) %>%
-          ungroup()
-
-        cleaned_df <- rbind(cleaned_df, short_df)
-
-      }
-    }
-  }
-
-  # Calculate the average by measure, dimension, time period
-  horizontal_ts <- cleaned_df %>%
-    group_by(measure, unit_measure, dimension, time_period) %>%
-    mutate(obs_value = mean(obs_value, na.rm=T),
-           countries = paste0(ref_area, collapse = ", "),
-           ref_area = case_when(!n==38 ~ paste0("OECD ", n), TRUE ~ "OECD")) %>%
-    slice(1) %>%
-    ungroup()
-
-  # Check same value is used across age bands
-  nonMatchHorizontal <- horizontal_ts %>%
-    group_by(measure, unit_measure, dimension) %>%
-    mutate(var = var(n)) %>%
-    ungroup() %>%
-    filter(!var == 0) %>%
-    nrow()
-
-  # Stop function if any number mismatches exist
-  if(nonMatchHorizontal != 0L) {
-    stop(print("Horizontal averages do not match! Check script"))
-  }
-
-  # Create list of countries used
-  match_list <- horizontal_ts %>%
-    select(measure, unit_measure, ref_area = countries) %>%
-    separate_rows(ref_area) %>%
-    distinct()
-
-  # Match countries to create overall OECD average --------------------------
-  # This is redundant if dimension is set to _T but useful for horizontal comparisons
-
-  oecd_ts <- tidy_df %>%
-    filter(dimension == "_T") %>%
-    # Drop any countries not in match list by merging
-    merge(match_list, by = c("measure", "unit_measure", "ref_area")) %>%
-    group_by(measure, unit_measure, dimension, time_period) %>%
-    mutate(n = n(),
-           obs_value = mean(obs_value, na.rm=T),
-           ref_area = case_when(!n==38 ~ paste0("OECD ", n), TRUE ~ "OECD")) %>%
-    slice(1) %>%
-    ungroup()
-
-  # Check same value is used across age bands
-  nonMatchAverage <- oecd_ts %>%
-    group_by(measure, unit_measure, dimension) %>%
-    mutate(var = var(n)) %>%
-    ungroup() %>%
-    filter(!var == 0) %>%
-    nrow()
-
-  # Stop function if any number mismatches exist
-  if(nonMatchAverage != 0L) {
-    stop(print("OECD averages do not match! Check script"))
-  }
-
-  # Test if both horizontal and OECD averages match
-  test_horiz <- horizontal_ts %>% select(measure, unit_measure, horizon = ref_area) %>% distinct()
-  test_oecd <- oecd_ts %>% select(measure, unit_measure, average = ref_area) %>% distinct()
-
-  # Count number of mismatches
-  testMatch <- test_horiz %>% merge(test_oecd) %>% filter(!horizon == average) %>% nrow()
-
-  # Stop function if any number mismatches exist
-  if(testMatch != 0L) {
-    stop(print("OECD and horizontal averages do not match! Check script"))
-  }
-
-  # Return oecd average only if _T otherwise horizontal averages + oecd average
-  if(all(dimension_name == "_T")) {
-    full_average <- oecd_ts %>% select(-n)
-  } else {
-    full_average <- oecd_ts %>%
-      select(-n) %>%
-      rbind(horizontal_ts %>% select(-n, -countries))
-  }
-
-  return(full_average)
-
-}
-
-latestPointAverage <- function(full_df, dimension_name) {
-
-  # dimension_name <- group_list
-  # full_df <- full_dat
-
-  full_df <- full_df %>%
-    filter(ref_area %in% oecd_countries) %>%
-    mutate(time_period = as.numeric(time_period))
-
-  # Remove any years that are not complete enough to be considered
-  filtered_df <- full_df %>%
-    group_by(measure, unit_measure, time_period, dimension) %>%
-    mutate(n=n()) %>%
-    ungroup() %>%
-    filter(!n < 5)
-
-  # Set latest value band
-  latest_df <- filtered_df %>%
-    filter(time_period >= 2010) %>%
-    group_by(ref_area, measure, dimension) %>%
-    filter(time_period == max(time_period)) %>%
-    ungroup() %>%
-    mutate(label = "latest")
-
-  # Combine groups
-  tidy_df <- rbind(latest_df)
-
-  # OECD average by dimension -----------------------------------------------
-
-  # Filter dimensions wanted and remove _SUB in unit_measure (for matching)
-  prepped_df <- tidy_df %>% filter(dimension %in% dimension_name)
-
-  # List measures available in dimensions specified
-  measures_avail <- prepped_df %>% distinct(measure) %>% pull()
-
-  cleaned_df <- c()
-  for(measure_name in measures_avail) {
-
-    # List unit measures available in measure specified
-    unit_measures_avail <- prepped_df %>% filter(measure == measure_name) %>% distinct(unit_measure) %>% pull()
-
-    for(unit_measure_name in unit_measures_avail) {
-
-      # Filter by each measure, unit_measure and dimension from the FULL data available for indicator
-      short_df <- tidy_df %>% filter(measure == measure_name,
-                                     unit_measure == unit_measure_name,
-                                     dimension %in% c(dimension_name, "_T"))
-
-      # List full set of countries available for indicator for full dimension
-      ref_area_full <- short_df %>% distinct(ref_area) %>% pull()
-
-      # Remove any countries that are missing from at least one of the three time periods
-      removals <- short_df %>%
-        group_by(label, dimension) %>%
-        complete(ref_area = ref_area_full) %>%
-        ungroup() %>%
-        filter(is.na(obs_value)) %>%
-        distinct(ref_area) %>%
-        pull()
-
-      # Loop over dimension values
-      for(dimension_name_short in dimension_name) {
-
-        short_df <- prepped_df %>%
-          filter(measure == measure_name,
-                 unit_measure == unit_measure_name,
-                 dimension == dimension_name_short) %>%
-          # Remove countries that have missing values/aren't available for all dimension
-          filter(!ref_area %in% removals) %>%
-          group_by(measure, unit_measure, dimension, label) %>%
-          mutate(n = n()) %>%
-          ungroup()
-
-        cleaned_df <- rbind(cleaned_df, short_df)
-
-      }
-
-    }
-  }
-
-  # Calculate most common year for latest year label
-  latest_year <- cleaned_df %>%
-    select(measure, time_period) %>%
-    group_by(measure) %>%
-    count(time_period) %>%
-    filter(n == max(n)) %>%
-    ungroup() %>%
-    select(-n)
-
-  # Calculate the average by measure, dimension, time period
-  horizontal_average <- cleaned_df %>%
-    select(-time_period) %>%
-    group_by(measure, unit_measure, dimension, label) %>%
-    mutate(obs_value = mean(obs_value, na.rm=T),
-           countries = paste0(ref_area, collapse = ", "),
-           ref_area = case_when(!n==38 ~ paste0("OECD ", n), TRUE ~ "OECD")) %>%
-    slice(1) %>%
-    ungroup() %>%
-    left_join(latest_year, by = "measure")
-
-  # Check same value is used across age bands
-  nonMatchHorizontal <- horizontal_average %>%
-    group_by(measure, unit_measure, dimension) %>%
-    mutate(var = var(n)) %>%
-    ungroup() %>%
-    filter(!var == 0) %>%
-    nrow()
-
-  # Stop function if any number mismatches exist
-  if(nonMatchHorizontal != 0L) {
-    stop(print("Horizontal averages do not match! Check script"))
-  }
-
-  # Create list of countries used
-  match_list <- horizontal_average %>%
-    select(measure, unit_measure, ref_area = countries) %>%
-    separate_rows(ref_area) %>%
-    distinct()
-
-  # Match countries to create overall OECD average --------------------------
-  # This is redundant if dimension is set to _T but useful for horizontal comparisons
-
-  oecd_average <- tidy_df %>%
-    filter(dimension == "_T") %>%
-    # Drop any countries not in match list by merging
-    merge(match_list, by = c("measure", "unit_measure", "ref_area")) %>%
-    group_by(measure, unit_measure, dimension, label) %>%
-    mutate(n = n(),
-           obs_value = mean(obs_value, na.rm=T),
-           ref_area = case_when(!n==38 ~ paste0("OECD ", n), TRUE ~ "OECD"),
-           time_period = case_when(label %in% c("precovid", "latest") ~ max(time_period),
-                                   TRUE ~ min(time_period))) %>%
-    slice(1) %>%
-    ungroup()
-
-  # Check same value is used across age bands
-  nonMatchAverage <- oecd_average %>%
-    group_by(measure, unit_measure, dimension) %>%
-    mutate(var = var(n)) %>%
-    ungroup() %>%
-    filter(!var == 0) %>%
-    nrow()
-
-  # Stop function if any number mismatches exist
-  if(nonMatchAverage != 0L) {
-    stop(print("OECD averages do not match! Check script"))
-  }
-
-  # Test if both horizontal and OECD averages match
-  test_horiz <- horizontal_average %>% select(measure, unit_measure, horizon = ref_area) %>% distinct()
-  test_oecd <- oecd_average %>% select(measure, unit_measure, average = ref_area) %>% distinct()
-
-  # Count number of mismatches
-  testMatch <- test_horiz %>% merge(test_oecd) %>% filter(!horizon == average) %>% nrow()
-
-  # Stop function if any number mismatches exist
-  if(testMatch != 0L) {
-    stop(print("OECD and horizontal averages do not match! Check script"))
-  }
-
-  # Return oecd average only if _T otherwise horizontal averages + oecd average
-  if(all(dimension_name == "_T")) {
-    full_average <- oecd_average %>% select(-n)
-  } else {
-    full_average <- oecd_average %>%
-      select(-n) %>%
-      rbind(horizontal_average %>% select(-countries, -n))
-  }
-
-  return(full_average)
-
-}
-
-earliestPointAverage <- function(full_df, dimension_name) {
-
-  # dimension_name <- group_list
-  # full_df <- full_dat
-
-  full_df <- full_df %>%
-    filter(ref_area %in% oecd_countries) %>%
-    mutate(time_period = as.numeric(time_period))
-
-  # Remove any years that are not complete enough to be considered
-  filtered_df <- full_df %>%
-    group_by(measure, unit_measure, time_period, dimension) %>%
-    mutate(n=n()) %>%
-    ungroup() %>%
-    filter(!n < 5)
-
-  # Set latest value band
-  earliest_df <- filtered_df %>%
-    filter(time_period >= 2010) %>%
-    group_by(ref_area, measure, dimension) %>%
-    filter(time_period == min(time_period)) %>%
-    ungroup() %>%
-    mutate(label = "earliest")
-
-  # Combine groups
-  tidy_df <- rbind(earliest_df)
-
-  # OECD average by dimension -----------------------------------------------
-
-  # Filter dimensions wanted and remove _SUB in unit_measure (for matching)
-  prepped_df <- tidy_df %>% filter(dimension %in% dimension_name)
-
-  # List measures available in dimensions specified
-  measures_avail <- prepped_df %>% distinct(measure) %>% pull()
-
-  cleaned_df <- c()
-  for(measure_name in measures_avail) {
-
-    # List unit measures available in measure specified
-    unit_measures_avail <- prepped_df %>% filter(measure == measure_name) %>% distinct(unit_measure) %>% pull()
-
-    for(unit_measure_name in unit_measures_avail) {
-
-      # Filter by each measure, unit_measure and dimension from the FULL data available for indicator
-      short_df <- tidy_df %>% filter(measure == measure_name,
-                                     unit_measure == unit_measure_name,
-                                     dimension %in% c(dimension_name, "_T"))
-
-      # List full set of countries available for indicator for full dimension
-      ref_area_full <- short_df %>% distinct(ref_area) %>% pull()
-
-      # Remove any countries that are missing from at least one of the three time periods
-      removals <- short_df %>%
-        group_by(label, dimension) %>%
-        complete(ref_area = ref_area_full) %>%
-        ungroup() %>%
-        filter(is.na(obs_value)) %>%
-        distinct(ref_area) %>%
-        pull()
-
-      # Loop over dimension values
-      for(dimension_name_short in dimension_name) {
-
-        short_df <- prepped_df %>%
-          filter(measure == measure_name,
-                 unit_measure == unit_measure_name,
-                 dimension == dimension_name_short) %>%
-          # Remove countries that have missing values/aren't available for all dimension
-          filter(!ref_area %in% removals) %>%
-          group_by(measure, unit_measure, dimension, label) %>%
-          mutate(n = n()) %>%
-          ungroup()
-
-        cleaned_df <- rbind(cleaned_df, short_df)
-
-      }
-
-    }
-  }
-
-  # Calculate most common year for latest year label
-  earliest_year <- cleaned_df %>%
-    select(measure, time_period) %>%
-    group_by(measure) %>%
-    count(time_period) %>%
-    filter(n == max(n)) %>%
-    filter(time_period == min(time_period)) %>%
-    ungroup() %>%
-    select(-n)
-
-  # Calculate the average by measure, dimension, time period
-  horizontal_average <- cleaned_df %>%
-    select(-time_period) %>%
-    group_by(measure, unit_measure, dimension, label) %>%
-    mutate(obs_value = mean(obs_value, na.rm=T),
-           countries = paste0(ref_area, collapse = ", "),
-           ref_area = case_when(!n==38 ~ paste0("OECD ", n), TRUE ~ "OECD")) %>%
-    slice(1) %>%
-    ungroup() %>%
-    left_join(earliest_year, by = "measure")
-
-  # Check same value is used across age bands
-  nonMatchHorizontal <- horizontal_average %>%
-    group_by(measure, unit_measure, dimension) %>%
-    mutate(var = var(n)) %>%
-    ungroup() %>%
-    filter(!var == 0) %>%
-    nrow()
-
-  # Stop function if any number mismatches exist
-  if(nonMatchHorizontal != 0L) {
-    stop(print("Horizontal averages do not match! Check script"))
-  }
-
-  # Create list of countries used
-  match_list <- horizontal_average %>%
-    select(measure, unit_measure, ref_area = countries) %>%
-    separate_rows(ref_area) %>%
-    distinct()
-
-  # Match countries to create overall OECD average --------------------------
-  # This is redundant if dimension is set to _T but useful for horizontal comparisons
-
-  oecd_average <- tidy_df %>%
-    filter(dimension == "_T") %>%
-    # Drop any countries not in match list by merging
-    merge(match_list, by = c("measure", "unit_measure", "ref_area")) %>%
-    group_by(measure, unit_measure, dimension, label) %>%
-    mutate(n = n(),
-           obs_value = mean(obs_value, na.rm=T),
-           ref_area = case_when(!n==38 ~ paste0("OECD ", n), TRUE ~ "OECD"),
-           time_period = case_when(label %in% c("earliest") ~ min(time_period),
-                                   TRUE ~ min(time_period))) %>%
-    slice(1) %>%
-    ungroup()
-
-  # Check same value is used across age bands
-  nonMatchAverage <- oecd_average %>%
-    group_by(measure, unit_measure, dimension) %>%
-    mutate(var = var(n)) %>%
-    ungroup() %>%
-    filter(!var == 0) %>%
-    nrow()
-
-  # Stop function if any number mismatches exist
-  if(nonMatchAverage != 0L) {
-    stop(print("OECD averages do not match! Check script"))
-  }
-
-  # Test if both horizontal and OECD averages match
-  test_horiz <- horizontal_average %>% select(measure, unit_measure, horizon = ref_area) %>% distinct()
-  test_oecd <- oecd_average %>% select(measure, unit_measure, average = ref_area) %>% distinct()
-
-  # Count number of mismatches
-  testMatch <- test_horiz %>% merge(test_oecd) %>% filter(!horizon == average) %>% nrow()
-
-  # Stop function if any number mismatches exist
-  if(testMatch != 0L) {
-    stop(print("OECD and horizontal averages do not match! Check script"))
-  }
-
-  # Return oecd average only if _T otherwise horizontal averages + oecd average
-  if(all(dimension_name == "_T")) {
-    full_average <- oecd_average %>% select(-n)
-  } else {
-    full_average <- oecd_average %>%
-      select(-n) %>%
-      rbind(horizontal_average %>% select(-countries, -n))
-  }
-
-  return(full_average)
-
-}
-
-earliest_timeframe <- c(2010:2014)
-medium_timeframe <- c(2015:2019)
-latest_time_frame <- c(2019:2023)
-
-baseline_timeframe <- earliest_timeframe
-
-full_dat <- readRDS("/Users/Kate/OneDrive/WISE/hsl_dashboard/data/final dataset.RDS") %>%
-  select(-obs_status, -base_per) %>%
-  rownames_to_column() %>%
-  pivot_longer(!c(rowname, measure, unit_measure, ref_area, time_period, obs_value),
-               values_to="dimension") %>%
-  group_by(rowname) %>%
-  mutate(
-    dimension = case_when(
-      all(dimension == "_T") ~ "_T",
-      dimension == "_T" ~ NA,
-      TRUE ~ dimension
-    ),
-    time_period = as.numeric(time_period)
-  ) %>%
-  ungroup() %>%
-  drop_na(dimension) %>%
-  select(-name,-rowname) %>%
+source("./global_processing.R")
+
+# Pull break treated data and clean for analysis
+full_dat <- readRDS("S:/Data/WDP/Well being database/Automated database/output/break_treated_final_dataset.RDS") %>%
+  filter(!dimension == "ISCED11_1", time_period >= 2010, !measure %in% dropped_indics) %>%
+  select(ref_area, time_period, measure, dimension, unit_measure, obs_value) %>%
   distinct() %>%
-  mutate(unit_measure = str_remove_all(unit_measure, "_SUB")) %>%
-  filter(!measure %in% c(""),
-         !dimension == "ISCED11_1",
-         time_period >= 2010)
-
-
-dict <- readxl::read_excel("./data/dictionary.xlsx") %>%
-  mutate(label = case_when(
-    is.na(label) & !is.na(indic) ~ indic,
-    TRUE ~ label
-  ),
-  unit_tag = case_when(
-    position == "before" & !is.na(unit_tag) ~ paste0("<span style='font-size:24px'>", unit_tag, "</span> "),
-    position == "after" & !unit_tag %in% c("%") & !is.na(unit_tag) ~ paste0("<br><span style='font-size:12px'>", unit_tag, "</span>"),
-    is.na(unit_tag) ~ "",
-    TRUE ~ unit_tag
-  )
-  ) %>%
-  distinct()
+  mutate(unit_measure = str_remove_all(unit_measure, "_SUB")) 
 
 group_one <- "F"
 group_two <- "M"
@@ -723,24 +14,19 @@ group_four <- "ISCED11_5T8"
 group_five <- "YOUNG"
 group_six <- "MID"
 group_seven <- "OLD"
-group_list <- c(group_one, group_two, group_three, group_four, group_five, group_six, group_seven)
-
+group_list <- c("F", "M", "ISCED11_2_3", "ISCED11_5T8", "YOUNG", "MID", "OLD")
 
 gap_filler <- full_dat %>%
   select(measure, dimension) %>%
   distinct() %>%
   filter(!dimension == "_T") %>%
-  merge(., data.frame(ref_area = country_name_vector)) %>%
+  merge(., data.frame(ref_area = c(all_countries, "OECD"))) %>%
   group_by(ref_area, measure) %>%
   complete(dimension = group_list) %>%
-  ungroup()
+  ungroup() 
 
-oecd_dat <- threePointAverage(full_dat, group_list) %>%
-  pivot_wider(names_from = "label", values_from = "obs_value") %>%
-  # mutate(latest = ifelse(is.na(latest) & !is.na(precovid), precovid, latest)) %>%
-  pivot_longer(!c(measure, unit_measure, ref_area, dimension), names_to = "label", values_to = "obs_value") %>%
-  filter(!label == "precovid") %>%
-  mutate(ref_area = ifelse(grepl("OECD", ref_area), "OECD", ref_area))
+oecd_dat <- twoPointAverage(full_dat, group_list) %>%
+  mutate(ref_area = ifelse(grepl("OECD", ref_area), "OECD", ref_area)) 
 
 tidy_dat <- full_dat %>%
   filter(dimension %in% c(group_list, "_T")) %>%
@@ -748,19 +34,24 @@ tidy_dat <- full_dat %>%
   filter(time_period == max(time_period) | time_period == min(time_period)) %>%
   mutate(label = ifelse(time_period == max(time_period), "latest", "earliest")) %>%
   ungroup() %>%
+  rbind(oecd_dat) 
+
+
+# Ratio -------------------------------------------------------------------
+
+ratio_dat <- tidy_dat %>%
   select(-time_period) %>%
-  rbind(oecd_dat) %>%
-  merge(dict %>% select(measure, unit_measure, direction)) %>%
   pivot_wider(names_from = "dimension", values_from = "obs_value") %>%
-  mutate(test = case_when(
-    is.na(`M`) & is.na(`ISCED11_2_3`) & is.na(`YOUNG`) ~ "drop",
-    TRUE ~ "keep"
-  )) %>%
+  mutate(
+    test = case_when(
+      is.na(`M`) & is.na(`ISCED11_2_3`) & is.na(`YOUNG`) ~ "drop",
+      TRUE ~ "keep")
+  ) %>%
   filter(test == "keep") %>%
   select(-test) %>%
+  merge(dict %>% select(measure, direction)) %>%
   mutate(
-    across(all_of(c(!!group_one, !!group_two, !!group_three, !!group_four,
-                    !!group_five, !!group_six, !!group_seven)),
+    across(all_of(!!group_list),
            ~ case_when(
              direction == "positive" ~ .x / `_T`,
              TRUE ~ `_T` / .x
@@ -768,9 +59,13 @@ tidy_dat <- full_dat %>%
 
   )
 
+# Pull indicators where all horizontal values exist
+measure_list <- ratio_dat %>% distinct(measure) %>% pull
 
-# Lollipop
-lollipop_dat <- tidy_dat %>%
+
+# Lollipop parity plots ---------------------------------------------------
+
+lollipop_dat <- ratio_dat %>%
   filter(label == "latest") %>%
   select(measure, ref_area, contains("ratio")) %>%
   pivot_longer(!c(measure, ref_area), names_to = "dimension", values_to = "ratio") %>%
@@ -787,31 +82,11 @@ lollipop_dat <- tidy_dat %>%
   distinct() %>%
   drop_na()
 
-# # Growing fastest
-# underline_dat <- tidy_dat %>%
-#   filter(label == "latest") %>%
-#   select(-unit_measure, -label, -contains("ratio")) %>%
-#   pivot_longer(!c(measure, ref_area, direction), names_to = "dimension", values_to = "obs_value") %>%
-#   drop_na(obs_value) %>%
-#   filter(!dimension == "_T") %>%
-#   mutate(
-#     dimension_group = case_when(
-#       dimension %in% c("F", "M") ~ "gender",
-#       dimension %in% c("YOUNG", "MID", "OLD") ~ "age",
-#       dimension %in% c("ISCED11_5T8", "ISCED11_2_3") ~ "educ",
-#       dimension == "_T" ~ "average"
-#     )
-#   ) %>%
-#   group_by(measure, ref_area, dimension_group) %>%
-#   mutate(underline = case_when(
-#     obs_value == max(obs_value) & direction == "positive" ~ "u",
-#     obs_value == min(obs_value) & direction == "negative" ~ "u",
-#     TRUE ~ "span"
-#   )) %>%
-#   select(-direction, -obs_value)
 
-# Performance
-time_series_color_int <- tidy_dat %>%
+
+# Cumulative change performance -------------------------------------------
+
+time_series_color_int <- ratio_dat %>%
   select(ref_area, measure, label, all_of(group_list)) %>%
   pivot_longer(!c(ref_area, measure, label)) %>%
   drop_na(value) %>%
@@ -851,8 +126,7 @@ time_series_color <- time_series_color_int %>%
   )
 
 
-# Pull indicators where all horizontal values exist
-measure_list <- time_series_color %>% distinct(measure) %>% pull
+# Tiers  ------------------------------------------------------------------
 
 tiers_dat <- full_dat %>%
   filter(measure %in% measure_list,
@@ -883,7 +157,7 @@ tiers_dat <- full_dat %>%
   ungroup() %>%
   select(measure, dimension, ref_area, tiers) %>%
   group_by(measure, dimension) %>%
-  complete(ref_area = unique(country_name_vector)) %>%
+  complete(ref_area = unique(all_countries)) %>%
   ungroup() %>%
   mutate(icon = case_when(
     tiers == 1 ~ "1-circle-fill",
@@ -895,14 +169,10 @@ tiers_dat <- full_dat %>%
   select(-tiers)
 
 
-gap_dat <- full_dat %>%
-  filter(measure %in% measure_list) %>%
-  group_by(ref_area, measure, dimension) %>%
-  filter(time_period == max(time_period) | time_period == min(time_period)) %>%
-  mutate(label = ifelse(time_period == max(time_period), "latest", "earliest")) %>%
-  ungroup() %>%
+# Gap icons ---------------------------------------------------------------
+
+gap_dat <- tidy_dat %>%
   select(-time_period) %>%
-  rbind(oecd_dat) %>%
   merge(dict %>% select(measure, direction)) %>%
   pivot_wider(names_from = "dimension", values_from = "obs_value") %>%
   mutate(
@@ -974,29 +244,19 @@ gap_dat <- full_dat %>%
   mutate(gap = scales::rescale(abs(gap), to = c(50, 100))) %>%
   ungroup()
 
-oecd_latest <- latestPointAverage(full_dat %>% filter(ref_area %in% oecd_countries), group_list) %>%
-  mutate(ref_area = "OECD") %>%
+
+# earliest and latest values ----------------------------------------------
+
+latest_dat <- tidy_dat %>%
+  filter(label == "latest", measure %in% measure_list, !dimension == "_T") %>%
+  select(measure, ref_area, dimension, latest_year = time_period, latest = obs_value)
+  
+earliest_dat <- tidy_dat %>%
+  filter(label == "earliest", measure %in% measure_list, !dimension == "_T") %>%
   select(measure, ref_area, dimension, latest_year = time_period, latest = obs_value)
 
-latest_dat <- full_dat %>%
-  group_by(measure, ref_area, dimension) %>%
-  filter(time_period == max(time_period)) %>%
-  ungroup() %>%
-  select(measure, ref_area, dimension, latest_year = time_period, latest = obs_value) %>%
-  rbind(oecd_latest) %>%
-  filter(measure %in% unique(gap_filler$measure), !dimension == "_T")
 
-oecd_earliest <- earliestPointAverage(full_dat %>% filter(ref_area %in% oecd_countries), group_list) %>%
-  mutate(ref_area = "OECD") %>%
-  select(measure, ref_area, dimension, earliest_year = time_period)
-
-earliest_dat <- full_dat %>%
-  group_by(measure, ref_area, dimension) %>%
-  filter(time_period == min(time_period)) %>%
-  ungroup() %>%
-  select(measure, ref_area, dimension, earliest_year = time_period) %>%
-  rbind(oecd_earliest) %>%
-  filter(measure %in% unique(gap_filler$measure), !dimension == "_T")
+# Time series and final cleaning ------------------------------------------
 
 time_series_dat <- full_dat %>%
   rbind(timeSeriesAverage(full_dat, group_list)) %>%
@@ -1007,7 +267,6 @@ time_series_dat <- full_dat %>%
   left_join(time_series_color) %>%
   left_join(gap_dat) %>%
   left_join(dict %>% select(measure, label, unit, unit_tag, round_val, direction, position)) %>%
-  # left_join(underline_dat) %>%
   left_join(lollipop_dat) %>%
   left_join(latest_dat) %>%
   left_join(earliest_dat) %>%
@@ -1105,7 +364,7 @@ time_series_dat <- full_dat %>%
   ) %>%
   select(-cat)
 
-saveRDS(time_series_dat, "./data/full inequalities data.RDS")
+saveRDS(time_series_dat, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page/data/full inequalities data.RDS")
 
 latest_total <- full_dat %>%
   filter(dimension == "_T", measure %in% measure_list) %>%
@@ -1124,7 +383,7 @@ latest_total <- full_dat %>%
   filter(time_period == max(time_period)) %>%
   ungroup()
 
-saveRDS(latest_total, "./data/latest total values.RDS")
+saveRDS(latest_total, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page/data/latest total values.RDS")
 
 
 
