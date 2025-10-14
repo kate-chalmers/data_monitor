@@ -7,13 +7,13 @@ full_dat <- readRDS("S:/Data/WDP/Well being database/Automated database/output/b
   distinct() %>%
   mutate(unit_measure = str_remove_all(unit_measure, "_SUB")) 
 
-group_one <- "F"
-group_two <- "M"
-group_three <- "ISCED11_2_3"
-group_four <- "ISCED11_5T8"
-group_five <- "YOUNG"
-group_six <- "MID"
-group_seven <- "OLD"
+# group_one <- "F"
+# group_two <- "M"
+# group_three <- "ISCED11_2_3"
+# group_four <- "ISCED11_5T8"
+# group_five <- "YOUNG"
+# group_six <- "MID"
+# group_seven <- "OLD"
 group_list <- c("F", "M", "ISCED11_2_3", "ISCED11_5T8", "YOUNG", "MID", "OLD")
 
 gap_filler <- full_dat %>%
@@ -72,7 +72,7 @@ lollipop_dat <- ratio_dat %>%
   mutate(dimension = str_remove_all(dimension, "_ratio"),
          dimension_color = case_when(
            dimension == "YOUNG" ~ "#88CCEE",
-           dimension == "MID" ~ "#CC6677",
+           dimension == "MID" ~ "#661100",
            dimension == "OLD" ~ "#DDCC77",
            dimension == "M" ~ "#117733",
            dimension == "F" ~ "#332288",
@@ -101,7 +101,7 @@ time_series_color <- time_series_color_int %>%
   mutate(
     # Assign significance if surpassing threshold
     across(
-      .cols = all_of(c(group_one, group_two, group_three, group_four, group_five, group_six, group_seven)),
+      .cols = all_of(group_list),
       .fns = ~ case_when(
         direction == "positive" & . > threshold ~ "#0F8554",
         direction == "negative" & . < threshold * -1 ~ "#0F8554",
@@ -253,7 +253,7 @@ latest_dat <- tidy_dat %>%
   
 earliest_dat <- tidy_dat %>%
   filter(label == "earliest", measure %in% measure_list, !dimension == "_T") %>%
-  select(measure, ref_area, dimension, latest_year = time_period, latest = obs_value)
+  select(measure, ref_area, dimension, earliest_year = time_period, earliest = obs_value)
 
 
 # Time series and final cleaning ------------------------------------------
@@ -283,7 +283,7 @@ time_series_dat <- full_dat %>%
       is.na(unit_tag) & !is.na(value_tidy) ~ paste0("<span style='font-size:24px;line-height:25px;'>", value_tidy, "</span>"),
       position == "before" & !is.na(unit_tag) & !is.na(value_tidy) ~ paste0(unit_tag, "<span style='font-size:24px;line-height:25px;'>", value_tidy, "</span>"),
       position == "after" & !is.na(unit_tag) & !is.na(value_tidy) ~ paste0("<span style='font-size:24px;line-height:25px;'>", value_tidy,"</span>", unit_tag),
-      is.na(position) & !is.na(unit_tag) & !is.na(value_tidy) ~ paste0("<span style='font-size:24px;line-height:25px;'>", value_tidy,"</span>"),
+      (is.na(position) | position == "none") & !is.na(unit_tag) & !is.na(value_tidy) ~ paste0("<span style='font-size:24px;line-height:25px;'>", value_tidy,"</span>"),
       TRUE ~ paste("<span style='font-size:24px;'>No data</span><br>")
     ),
     image = case_when(
@@ -364,26 +364,26 @@ time_series_dat <- full_dat %>%
   ) %>%
   select(-cat)
 
-saveRDS(time_series_dat, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page/data/full inequalities data.RDS")
 
-latest_total <- full_dat %>%
-  filter(dimension == "_T", measure %in% measure_list) %>%
-  merge(dict %>% select(unit_tag, round_val, position)) %>%
+saveRDS(time_series_dat, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/gap_page/data/full inequalities data.RDS")
+
+latest_total <- tidy_dat %>%
+  filter(dimension == "_T", measure %in% measure_list, label == "latest") %>%
+  merge(dict %>% select(measure, unit_tag = unit_tag_clean, round_val, position), by = "measure") %>%
   mutate(
     value_tidy = case_when(!is.na(obs_value) ~ prettyNum(round(obs_value, round_val), big.mark = " ")),
     value_tidy = case_when(
-      is.na(unit_tag) & !is.na(value_tidy) ~ paste0("<span style='font-size:24px;line-height:25px;'>", value_tidy, "</span>"),
-      position == "before" & !is.na(unit_tag) & !is.na(value_tidy) ~ paste0(unit_tag, "<span style='font-size:24px;line-height:25px;'>", value_tidy, "</span>"),
-      position == "after" & !is.na(unit_tag) & !is.na(value_tidy) ~ paste0("<span style='font-size:24px;line-height:25px;'>", value_tidy,"</span>", unit_tag),
-      is.na(position) & !is.na(unit_tag) & !is.na(value_tidy) ~ paste0("<span style='font-size:24px;line-height:25px;'>", value_tidy,"</span>"),
-      TRUE ~ paste("<span style='font-size:24px;'>No data</span><br>")
+      is.na(unit_tag) & !is.na(value_tidy) ~ paste0("", value_tidy, ""),
+      position == "before" & !is.na(unit_tag) & !is.na(value_tidy) ~ paste0(unit_tag, "", value_tidy, ""),
+      position == "after" & !is.na(unit_tag) & !is.na(value_tidy) & unit_tag == "%" ~ paste0("", value_tidy,"<span style='font-size:2rem'>", unit_tag, "</span>"),
+      position == "after" & !is.na(unit_tag) & !is.na(value_tidy) & unit_tag == "%" ~ paste0("", value_tidy, " ", unit_tag),
+      is.na(position) & !is.na(unit_tag) & !is.na(value_tidy) ~ paste0("", value_tidy,""),
+      TRUE ~ paste("No data")
     )
   ) %>%
-  group_by(ref_area, measure) %>%
-  filter(time_period == max(time_period)) %>%
-  ungroup()
+  select(ref_area, measure, value_tidy)
 
-saveRDS(latest_total, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page/data/latest total values.RDS")
+saveRDS(latest_total, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/gap_page/data/latest total values.RDS")
 
 
 

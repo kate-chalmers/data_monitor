@@ -45,9 +45,6 @@ areaPlotter <- function(df, country_name) {
              axisLine = list(NULL)) |>
     e_tooltip(
       trigger = "axis",
-      # In case country name in tooltip
-      # <b style='font-size:10px!important;margin-bottom:0px;'>Country: </b>", country_name,"
-      # <br>
       formatter = htmlwidgets::JS(paste0("
     function(params){
 
@@ -73,40 +70,6 @@ areaPlotter <- function(df, country_name) {
   
   
 }
-
-indicatorText <- function(avg_df, cluster_df) {
-  
-  cluster_text <- avg_df %>%
-    filter(measure %in% cluster_df) %>%
-    mutate(perf_val = ifelse(is.na(perf_val), "#999999", perf_val)) %>%
-    count(perf_val) %>%
-    # complete(perf_val = c("#0F8554", "goldenrod", "#CF597E", "#999999")) %>%
-    mutate(n = ifelse(is.na(n), 0, n),
-           cluster_text = case_when(
-             perf_val == "#0F8554" ~ paste0("<b style='font-size:1.5rem'>", n,"</b> indicators have <b style='color:", perf_val,";font-size:1.5rem'>improved</b>."),
-             perf_val == "goldenrod" ~ paste0("<b style='font-size:1.5rem'>", n,"</b> indicators have <b style='color:", perf_val,";font-size:1.5rem'>not seen significant change</b>."),
-             perf_val == "#CF597E" ~ paste0("<b style='font-size:1.5rem'>", n,"</b> indicators have <b style='color:", perf_val,";font-size:1.5rem'>deteriorated</b>."),
-             perf_val == "#999999" ~ paste0("<b style='font-size:1.5rem'>", n,"</b> indicators <b style='color:", perf_val,";font-size:1.5rem'>do not have enough data for evaluation</b>.")
-           )) %>%
-    arrange(-n) %>%
-    pull(cluster_text) 
-  
-  cluster_text <- fluidRow(
-    HTML("<span style='font-size:14px; display:inline-block;'>Since 2010 or the earliest available year, <br><br>"), 
-    div(
-             column(3, HTML(cluster_text[1])),
-             column(3, HTML(cluster_text[2])),
-             column(3, HTML(cluster_text[3])),
-             column(3, HTML(cluster_text[4]))
-        
-    ),
-    HTML("</span>")
-  )
-  
-  return(cluster_text)
-  
-}
-
 
 pillBox <- function(avg_df, cluster_filter) {
   

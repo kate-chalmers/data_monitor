@@ -6,7 +6,7 @@
   color: #586179;
 }
 
-body > div.container-fluid > div:nth-child(6) > div.col-sm-8 > div:nth-child(5) {
+body > div.container-fluid > div:nth-child(5) > div.col-sm-8 > div:nth-child(1) {
   margin-bottom: 0px;
 }
 

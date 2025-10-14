@@ -9,15 +9,17 @@ oecd_countries <- c("AUS", "AUT", "BEL", "CAN", "CHL", "COL", "CRI", "CZE", "DNK
 
 partner_countries <- c("BRA", "ARG", "BGR", "HRV", "PER", "ROU", "IDN", "THA", "ZAF")
 
-
 all_countries <- c(oecd_countries, partner_countries)
 
-
-dropped_indics <- c("11_3_Sadness", "11_3_Anger", "11_3_Worry",
-                  "11_3_Sadness_DEP", "11_3_Anger_DEP", "11_3_Worry_DEP",
-                  "11_3_Wellrest", "11_3_Enjoy", "11_3_Laugh",
-                  "11_3_Wellrest_DEP", "11_3_Enjoy_DEP", "11_3_Laugh_DEP")
-
+dropped_indics <- c(# Ad hoc indicators not on DE
+                    "11_3_Sadness", "11_3_Anger", "11_3_Worry",
+                    "11_3_Sadness_DEP", "11_3_Anger_DEP", "11_3_Worry_DEP",
+                    "11_3_Wellrest", "11_3_Enjoy", "11_3_Laugh",
+                    "11_3_Wellrest_DEP", "11_3_Enjoy_DEP", "11_3_Laugh_DEP",
+                    # Duplicates to be removed from database
+                    "6_2_DEP", "6_3_DEP",
+                    # Yes/no indicators where mirror is included
+                    "5_2_DEP", "10_2", "11_3_DEP", "7_1", "8_1")
 
 dict <- readxl::read_excel("S:/Data/WDP/Well being database/Automated database/output/dictionary.xlsx") %>%
   mutate(
