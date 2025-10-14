@@ -11,7 +11,7 @@ lollipopPlotter_fun <- function(full_dat, measure_name, dimension_group_name) {
   # country_name <- "OECD"
 
   lollipop_dat <- full_dat %>%
-    filter( measure == measure_name, dimension_group == dimension_group_name) %>%
+    filter( measure == measure_name) %>%
     select(measure, dimension_long, dimension_color, ratio) %>%
     distinct() %>%
     group_by(dimension_long) |>
@@ -28,8 +28,8 @@ lollipopPlotter_fun <- function(full_dat, measure_name, dimension_group_name) {
   lines <- lapply(measure_name, function(indicator) {
     points <- lollipop_dat[lollipop_dat$measure == indicator, ] %>% select(-ratio) %>% pivot_longer(!c(measure, dimension_long, dimension_color))
     list(
-      list(coord = c(min(points$value), indicator)),  # Start point
-      list(coord = c(max(points$value), indicator))   # End point
+      list(coord = c(min(points$value, na.rm=T), indicator)),  # Start point
+      list(coord = c(max(points$value, na.rm=T), indicator))   # End point
     )
   })
 
@@ -48,7 +48,6 @@ lollipopPlotter_fun <- function(full_dat, measure_name, dimension_group_name) {
              axisLine = list(show = F),
              axisTicks = list(show = F)) |>
     e_x_axis(axisLine = list(show = F),
-             axisTicks = list(show = F),
              min = 0.5,
              max = 1.5,
              interval = 0.25

@@ -197,8 +197,8 @@ server <- function(input, output, session) {
                                  ),
                                  fluidRow(
                                    column(4, align = "center", class = "container",
-                                          style = paste0("border-left: solid 1.5px lightgrey; border-bottom: solid 1.5px lightgrey; border-right: solid 1.5px lightgrey;
-                                                         border-radius: 0px 0px 0px 25px;opacity:", opacity_val %>% filter(dimension_group == "gender") %>% pull(opacity), "!important;"),
+                                          style = paste0("border-left: solid 1.5px lightgrey;
+                                                         border-radius: 0px 0px 0px 0px;opacity:", opacity_val %>% filter(dimension_group == "gender") %>% pull(opacity), "!important;"),
                                           div(class = "folder",
                                               fluidRow(class = paste0("card slide slide1 ", indicator_list[i], " gender_dim"),
                                                        column(5, class = "card-front card-grow",
@@ -222,20 +222,20 @@ server <- function(input, output, session) {
                                                                        echarts4rOutput(paste0(dim_label, "_men_ts_", i), height="100%")
                                                               )
                                                        )
-                                              ),
-                                              fluidRow(class = "slide slide2", style = "height:160px",
-                                                       br(),
-                                                       br(),
-                                                       fluidRow(align = "center",
-                                                                echarts4rOutput(paste0(dim_label, "_gender_pop_", i), height = 50),
-                                                                column(4, align = "left", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>← Group is worse off</span>")),
-                                                                column(4, align = "center", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;margin-top:5px'>Group is same<br>as population</span>")),
-                                                                column(4, align = "right", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>Group is better off→</span>"))
-                                                       )
                                               )
+                                              # fluidRow(class = "slide slide2", style = "height:160px",
+                                              #          br(),
+                                              #          br(),
+                                              #          fluidRow(align = "center",
+                                              #                   echarts4rOutput(paste0(dim_label, "_gender_pop_", i), height = 50),
+                                              #                   column(4, align = "left", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>← Group is worse off</span>")),
+                                              #                   column(4, align = "center", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;margin-top:5px'>Group is same<br>as population</span>")),
+                                              #                   column(4, align = "right", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>Group is better off→</span>"))
+                                              #          )
+                                              # )
                                           )
                                    ),
-                                   column(4, align = "center", class = "container", style = paste0("border-bottom: solid 1.5px lightgrey;opacity:", opacity_val %>% filter(dimension_group == "age") %>% pull(opacity), "!important;"),
+                                   column(4, align = "center", class = "container", style = paste0("opacity:", opacity_val %>% filter(dimension_group == "age") %>% pull(opacity), "!important;"),
                                           div(class = "folder",
                                               fluidRow(class = paste0("card slide slide1 ", indicator_list[i], " age_dim"),
                                                        column(3, class = "card-front card-grow",
@@ -267,24 +267,24 @@ server <- function(input, output, session) {
                                                               fluidRow(style = "z-index:2",
                                                                        echarts4rOutput(paste0(dim_label, "_old_ts_", i), height="100%"))
                                                        )
-                                              ),
-                                              fluidRow(class = "slide slide2", style = "height:160px",
-                                                       fluidRow(
-                                                         fluidRow(
-                                                           HTML("<b>Parity with population average</b>"),
-                                                           br(),
-                                                           br(),
-                                                           echarts4rOutput(paste0(dim_label, "_age_pop_", i), height = 50),
-                                                           column(4, align = "left", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>← Group is worse off</span>")),
-                                                           column(4, align = "center", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;margin-top:5px'>Group is same<br>as population</span>")),
-                                                           column(4, align = "right", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>Group is better off →</span>"))
-                                                         )
-                                                       )
                                               )
+                                              # fluidRow(class = "slide slide2", style = "height:160px",
+                                              #          fluidRow(
+                                              #            fluidRow(
+                                              #              HTML("<b>Parity with population average</b>"),
+                                              #              br(),
+                                              #              br(),
+                                              #              echarts4rOutput(paste0(dim_label, "_age_pop_", i), height = 50),
+                                              #              column(4, align = "left", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>← Group is worse off</span>")),
+                                              #              column(4, align = "center", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;margin-top:5px'>Group is same<br>as population</span>")),
+                                              #              column(4, align = "right", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>Group is better off →</span>"))
+                                              #            )
+                                              #          )
+                                              # )
                                           )
                                    ),
-                                   column(4,  align = "center", class = "container", style = paste0("border-right: solid 1.5px lightgrey; border-left: solid 1.5px lightgrey; border-bottom: solid 1.5px lightgrey;
-                                                                                                    border-radius: 0px 0px 25px 0px;opacity:", opacity_val %>% filter(dimension_group == "educ") %>% pull(opacity), "!important;"),
+                                   column(4,  align = "center", class = "container", style = paste0("border-right: solid 1.5px lightgrey;
+                                                                                                    opacity:", opacity_val %>% filter(dimension_group == "educ") %>% pull(opacity), "!important;"),
                                           div(class = "folder",
                                               fluidRow(class = paste0("card slide slide1 ", indicator_list[i], " educ_dim"),
                                                        column(5, class = "card-front card-grow",
@@ -308,24 +308,40 @@ server <- function(input, output, session) {
                                                                        echarts4rOutput(paste0(dim_label, "_tertiary_ts_", i), height="100%")
                                                               )
                                                        )
-                                              ),
-                                              fluidRow(class = "slide slide2", style = "height:160px",
-                                                       br(),
-                                                       br(),
-                                                       fluidRow(
-                                                         echarts4rOutput(paste0(dim_label, "_educ_pop_", i), height = 50),
-                                                         column(4, align = "left", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>← Group is worse off</span>")),
-                                                         column(4, align = "center", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;margin-top:5px'>Group is same<br>as population</span>")),
-                                                         column(4, align = "right", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>Group is better off →</span>")),
-                                                         br(),
-                                                         column(12, align="left", HTML("<span style='font-size:0.75rem'>Note: Education data excludes primary education attainment due to small samples.</span>"))
-                                                       )
                                               )
+                                              # fluidRow(class = "slide slide2", style = "height:160px",
+                                              #          br(),
+                                              #          br(),
+                                              #          fluidRow(
+                                              #            echarts4rOutput(paste0(dim_label, "_educ_pop_", i), height = 50),
+                                              #            column(4, align = "left", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>← Group is worse off</span>")),
+                                              #            column(4, align = "center", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;margin-top:5px'>Group is same<br>as population</span>")),
+                                              #            column(4, align = "right", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>Group is better off →</span>")),
+                                              #            br(),
+                                              #            column(12, align="left", HTML("<span style='font-size:0.75rem'>Note: Education data excludes primary education attainment due to small samples.</span>"))
+                                              #          )
+                                              # )
 
                                           )
                                    )
+                                 ),
+                                 fluidRow(class = "slide slide2",
+                                          style = "height:160px; border-left:solid 1.5px lightgrey; border-right: solid 1.5px lightgrey; border-bottom: solid 1.5px lightgrey; border-radius:0px 0px 25px 25px;",
+                                          align = "center",
+                                          column(2),
+                                          column(8,
+                                                 HTML("<b>Parity with population average</b>"),
+                                                 br(),
+                                                 br(),
+                                                 echarts4rOutput(paste0(dim_label, "_age_pop_", i), height = 50),
+                                                 column(4, align = "right", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>← Group is worse off</span>")),
+                                                 column(4, align = "center", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;margin-top:5px'>Group is same<br>as population</span>")),
+                                                 column(4, align = "left", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>Group is better off →</span>"))
+                                          ),
+                                          column(2)
                                  )
                         )
+
                  ),
                  column(1)
 
