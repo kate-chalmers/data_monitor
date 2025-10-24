@@ -34,16 +34,15 @@ the_thes <- c("United States", "Netherlands", "Slovak Republic", "United Kingdom
 
 partner_countries <- c("BRA", "ARG", "BGR", "HRV", "PER", "ROU", "IDN", "THA", "ZAF")
 
-partner_country_vector <- c("BRA" = "Brazil",
-                            "ARG" = "Argentina",
-                            "BGR" = "Bulgaria",
-                            "HRV" = "Croatia",
-                            "PER" = "Peru",
-                            "ROU" = "Romania",
-                            "IDN" = "Indonesia",
-                            "THA" = "Thailand",
-                            "ZAF" = "South Africa")
-
+partner_country_vector <- c("Brazil"  = "BRA",
+                            "Argentina"= "ARG",
+                            "Bulgaria"= "BGR",
+                            "Croatia" = "HRV",
+                            "Peru" = "PER",
+                            "Romania" = "ROU",
+                            "Indonesia" = "IDN",
+                            "Thailand" = "THA",
+                            "South Africa" = "ZAF")
 
 country_name_vector <- setNames(c("OECD", oecd_countries), c("OECD Average", oecd_names))
 country_name_vector <- c(country_name_vector, partner_country_vector)

@@ -268,19 +268,6 @@ server <- function(input, output, session) {
                                                                        echarts4rOutput(paste0(dim_label, "_old_ts_", i), height="100%"))
                                                        )
                                               )
-                                              # fluidRow(class = "slide slide2", style = "height:160px",
-                                              #          fluidRow(
-                                              #            fluidRow(
-                                              #              HTML("<b>Parity with population average</b>"),
-                                              #              br(),
-                                              #              br(),
-                                              #              echarts4rOutput(paste0(dim_label, "_age_pop_", i), height = 50),
-                                              #              column(4, align = "left", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>← Group is worse off</span>")),
-                                              #              column(4, align = "center", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;margin-top:5px'>Group is same<br>as population</span>")),
-                                              #              column(4, align = "right", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>Group is better off →</span>"))
-                                              #            )
-                                              #          )
-                                              # )
                                           )
                                    ),
                                    column(4,  align = "center", class = "container", style = paste0("border-right: solid 1.5px lightgrey;
