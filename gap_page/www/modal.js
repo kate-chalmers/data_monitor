@@ -1,5 +1,5 @@
-$(document).ready(function() {
-  $(document).on('click', '.card', function() {
+/* $(document).ready(function() {
+  $(document).on('click', '.card-front', function() {
     var classList = Array.from(this.classList); // avoids regex escaping
     var anyUnderscore = classList.find(c => c.includes('_')) || null;
     Shiny.setInputValue('clicked_class', anyUnderscore, {priority: 'event'});
@@ -12,6 +12,16 @@ $(document).ready(function() {
     Shiny.setInputValue('clicked_class2', measureClass, {priority: 'event'});
     Shiny.setInputValue('clicked_dim', measure, {priority: 'event'});
 
+    $('#modal1').modal('show');
+  });
+});
+*/
+
+$(document).ready(function() {
+  $(document).on('click', '.card-front', function() {
+    var classList = $(this).attr('class').split(' ');
+    var measureClass = classList.find(c => c.includes('_'));
+    Shiny.setInputValue('clicked_class', measureClass, {priority: 'event'});
     $('#modal1').modal('show');
   });
 });

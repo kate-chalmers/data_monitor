@@ -3,34 +3,34 @@ source("./global.R")
 ui <- fluidPage(shinyjs::useShinyjs(),
                 tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "stylesheet.css")),
                 tags$head(tags$script(src="modal.js")),
+
                 bsModal(id = "modal1",
                         title = "Download the data",
                         trigger = NULL,
                         uiOutput("defText")),
 
-                column(12, align="right", style = "font-size:1rem",
-                       paste0("Last updated: ", last_updated, "   ")
-                ),
-                br(),
-                br(),
                 fluidRow(align="center",
                          column(2),
                          column(8, align = "center",
+                                br(),
+                                HTML("<img src='tutorial.svg' height=300 width = 600>"),
+                                br(),
+                                br(),
+                                br(),
                                 selectInput("countrySelector",
                                             label = "Choose a country",
                                             choices = list(
                                               "Averages" = average_vector,
                                               "OECD countries" = oecd_vector,
-                                              "Non-OECD country" = accession_vector
+                                              "Partner country" = accession_vector
                                             ),
                                             selected = "OECD"
                                 ),
-                                HTML("<span style='font-size:9px'>Tier is not shown when an average or a non-OECD country is selected</span>"),
+                                HTML("<span style='font-size:9px'>Tier is displayed only for OECD countries</span>"),
                                 br(),
                                 br(),
                                 br(),
                                 radioGroupButtons("clusterSelector",
-                                                  label = "Select the Well-being cluster",
                                                   choices = c("Material conditions" = "mats",
                                                               "Quality of life" = "qualts",
                                                               "Community relationships" = "coms"),
@@ -149,33 +149,45 @@ server <- function(input, output, session) {
 
     inequality_table <- fluidRow(
 
-      uiOutput(paste0(dim_label, "_dimension_title")) %>% withSpinner(color="#0dc5c1"),
       fluidRow(
-        column(3),
-        column(6,
-               HTML("<center>Since 2010, this number of indicators have...</center>
-                    <br>"),
-               fluidRow(
-                 uiOutput(paste0(dim_label, "_summary_F")),
-                 uiOutput(paste0(dim_label, "_summary_M")),
+        div(
+          column(2),
+          column(8, align = "center",
+                 uiOutput(paste0(dim_label, "_dimension_title")) %>% withSpinner(color="#0dc5c1"),
                  br(),
-                 uiOutput(paste0(dim_label, "_summary_YOUNG")),
-                 uiOutput(paste0(dim_label, "_summary_MID")),
-                 uiOutput(paste0(dim_label, "_summary_OLD")),
-                 br(),
-                 uiOutput(paste0(dim_label, "_summary_ISCED11_2_3")),
-                 uiOutput(paste0(dim_label, "_summary_ISCED11_5T8")))
+                 br()
+                 ),
+          column(2)
         ),
-        column(3)
+        div(
+          column(3),
+          column(6, align="center",
+                 HTML("Number of well-being outcomes that have improved, show no clear change or have deteriorated from 2015 to the latest available year:"),
+                 br(),
+                 fluidRow(
+                   uiOutput(paste0(dim_label, "_summary_F")),
+                   uiOutput(paste0(dim_label, "_summary_M")),
+                   br(),
+                   uiOutput(paste0(dim_label, "_summary_YOUNG")),
+                   uiOutput(paste0(dim_label, "_summary_MID")),
+                   uiOutput(paste0(dim_label, "_summary_OLD")),
+                   br(),
+                   uiOutput(paste0(dim_label, "_summary_ISCED11_2_3")),
+                   uiOutput(paste0(dim_label, "_summary_ISCED11_5T8")))
+          ),
+          column(3)
+        )
       ),
       fluidRow(align = "center", style="margin-top:0px;",
                HTML(
                  "<br>
-                  <span style='color:#999999;'>●</span> not enough data
-                  <span style='color:#CF597E;'>●</span> deteriorated
-                  <span style='color:goldenrod;'>●</span> no significant change
-                  <span style='color:#0F8554;'>●</span> improved")
+                  <span style='color:#CF597E!important;'>●</span> deteriorated
+                  <span style='color:goldenrod!important;'>●</span> no clear change
+                  <span style='color:#0F8554!important;'>●</span> improved
+                  <span style='color:#999999!important;'>●</span> not enough data to assess change
+                 ")
       ),
+      br(),
       br(),
       br(),
 
@@ -184,155 +196,121 @@ server <- function(input, output, session) {
         val <- strsplit(indicator_list[i], "_")[[1]][1]
         dim_color <- dim_colors %>% filter(cat == val) %>% pull(color)
 
-        opacity_val <- dat_country() %>% filter(measure == indicator_list[i]) %>% select(dimension_group, opacity) %>% distinct()
+        opacity_val <- dat_country() %>% filter(measure == indicator_list[i]) %>% select(dimension, opacity) %>% distinct()
 
-        fluidRow(style="margin-bottom:15px",
-                 column(1),
-                 column(10,
-                        fluidRow(class = "folder-row",
-                                 fluidRow(style = paste0("background:", dim_color,"; border-radius: 25px 25px 0px 0px; border:solid 1.5px lightgrey;"),
-                                          column(1, class="card-grow", align="center", uiOutput(paste0(dim_label, "_dimension_", i))),
-                                          column(9, style="margin-top:10px", align = "left", uiOutput(paste0(dim_label, "_label_text_", i))),
-                                          column(2, style = "margin-top:10px", align = "right", uiOutput(paste0(dim_label, "_population_value_", i)))
-                                 ),
-                                 fluidRow(
-                                   column(4, align = "center", class = "container",
-                                          style = paste0("border-left: solid 1.5px lightgrey;
-                                                         border-radius: 0px 0px 0px 0px;opacity:", opacity_val %>% filter(dimension_group == "gender") %>% pull(opacity), "!important;"),
-                                          div(class = "folder",
-                                              fluidRow(class = paste0("card slide slide1 ", indicator_list[i], " gender_dim"),
-                                                       column(5, class = "card-front card-grow",
-                                                              fluidRow(style = "height: 40%; z-index:1;",
-                                                                       uiOutput(paste0(dim_label, "_women_gap_", i), height=25),
-                                                                       uiOutput(paste0(dim_label, "_icon_", i, "_F")),
-                                                                       uiOutput(paste0(dim_label, "_text_", i, "_F"))
-                                                              ),
-                                                              fluidRow(style = "z-index:2",
-                                                                       echarts4rOutput(paste0(dim_label, "_women_ts_", i), height="100%")
-                                                              )
-                                                       ),
-                                                       column(1),
-                                                       column(5, class = "card-front card-grow",
-                                                              fluidRow(style = "height: 40%; z-index:1;",
-                                                                       uiOutput(paste0(dim_label, "_men_gap_", i), height=25),
-                                                                       uiOutput(paste0(dim_label, "_icon_", i, "_M")),
-                                                                       uiOutput(paste0(dim_label, "_text_", i, "_M"))
-                                                              ),
-                                                              fluidRow(style = "z-index:2",
-                                                                       echarts4rOutput(paste0(dim_label, "_men_ts_", i), height="100%")
-                                                              )
-                                                       )
-                                              )
-                                              # fluidRow(class = "slide slide2", style = "height:160px",
-                                              #          br(),
-                                              #          br(),
-                                              #          fluidRow(align = "center",
-                                              #                   echarts4rOutput(paste0(dim_label, "_gender_pop_", i), height = 50),
-                                              #                   column(4, align = "left", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>← Group is worse off</span>")),
-                                              #                   column(4, align = "center", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;margin-top:5px'>Group is same<br>as population</span>")),
-                                              #                   column(4, align = "right", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>Group is better off→</span>"))
-                                              #          )
-                                              # )
-                                          )
-                                   ),
-                                   column(4, align = "center", class = "container", style = paste0("opacity:", opacity_val %>% filter(dimension_group == "age") %>% pull(opacity), "!important;"),
-                                          div(class = "folder",
-                                              fluidRow(class = paste0("card slide slide1 ", indicator_list[i], " age_dim"),
-                                                       column(3, class = "card-front card-grow",
-                                                              fluidRow(style = "height: 40%; z-index:1;",
-                                                                       uiOutput(paste0(dim_label, "_young_gap_", i), height = 25),
-                                                                       uiOutput(paste0(dim_label, "_icon_", i, "_YOUNG")),
-                                                                       uiOutput(paste0(dim_label, "_text_", i, "_YOUNG"))
-                                                              ),
-                                                              fluidRow(style = "z-index:2",
-                                                                       echarts4rOutput(paste0(dim_label, "_young_ts_", i), height="100%"))
-                                                       ),
-                                                       column(1),
-                                                       column(3, class = "card-front card-grow",
-                                                              fluidRow(style = "height: 40%; z-index:1;",
-                                                                       uiOutput(paste0(dim_label, "_mid_gap_", i), height = 25),
-                                                                       uiOutput(paste0(dim_label, "_icon_", i, "_MID")),
-                                                                       uiOutput(paste0(dim_label, "_text_", i, "_MID"))
-                                                              ),
-                                                              fluidRow(style = "z-index:2",
-                                                                       echarts4rOutput(paste0(dim_label, "_mid_ts_", i), height="100%"))
-                                                       ),
-                                                       column(1),
-                                                       column(3, class = "card-front card-grow",
-                                                              fluidRow(style = "height: 40%; z-index:1;",
-                                                                       uiOutput(paste0(dim_label, "_old_gap_", i), height = 25),
-                                                                       uiOutput(paste0(dim_label, "_icon_", i, "_OLD")),
-                                                                       uiOutput(paste0(dim_label, "_text_", i, "_OLD"))
-                                                              ),
-                                                              fluidRow(style = "z-index:2",
-                                                                       echarts4rOutput(paste0(dim_label, "_old_ts_", i), height="100%"))
-                                                       )
-                                              )
-                                          )
-                                   ),
-                                   column(4,  align = "center", class = "container", style = paste0("border-right: solid 1.5px lightgrey;
-                                                                                                    opacity:", opacity_val %>% filter(dimension_group == "educ") %>% pull(opacity), "!important;"),
-                                          div(class = "folder",
-                                              fluidRow(class = paste0("card slide slide1 ", indicator_list[i], " educ_dim"),
-                                                       column(5, class = "card-front card-grow",
-                                                              fluidRow(style = "height: 40%; z-index:1;",
-                                                                       uiOutput(paste0(dim_label, "_secondary_gap_", i), height = 25),
-                                                                       uiOutput(paste0(dim_label, "_icon_", i, "_ISCED11_2_3")),
-                                                                       uiOutput(paste0(dim_label, "_text_", i, "_ISCED11_2_3"))
-                                                              ),
-                                                              fluidRow(style = "z-index:2",
-                                                                       echarts4rOutput(paste0(dim_label, "_secondary_ts_", i), height="100%")
-                                                              )
-                                                       ),
-                                                       column(1),
-                                                       column(5, class = "card-front card-grow",
-                                                              fluidRow(style = "height: 40%; z-index:1;",
-                                                                       uiOutput(paste0(dim_label, "_tertiary_gap_", i), height = 25),
-                                                                       uiOutput(paste0(dim_label, "_icon_", i, "_ISCED11_5T8")),
-                                                                       uiOutput(paste0(dim_label, "_text_", i, "_ISCED11_5T8"))
-                                                              ),
-                                                              fluidRow(style = "z-index:2",
-                                                                       echarts4rOutput(paste0(dim_label, "_tertiary_ts_", i), height="100%")
-                                                              )
-                                                       )
-                                              )
-                                              # fluidRow(class = "slide slide2", style = "height:160px",
-                                              #          br(),
-                                              #          br(),
-                                              #          fluidRow(
-                                              #            echarts4rOutput(paste0(dim_label, "_educ_pop_", i), height = 50),
-                                              #            column(4, align = "left", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>← Group is worse off</span>")),
-                                              #            column(4, align = "center", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;margin-top:5px'>Group is same<br>as population</span>")),
-                                              #            column(4, align = "right", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>Group is better off →</span>")),
-                                              #            br(),
-                                              #            column(12, align="left", HTML("<span style='font-size:0.75rem'>Note: Education data excludes primary education attainment due to small samples.</span>"))
-                                              #          )
-                                              # )
-
-                                          )
-                                   )
-                                 ),
-                                 fluidRow(class = "slide slide2",
-                                          style = "height:160px; border-left:solid 1.5px lightgrey; border-right: solid 1.5px lightgrey; border-bottom: solid 1.5px lightgrey; border-radius:0px 0px 25px 25px;",
-                                          align = "center",
-                                          column(2),
-                                          column(8,
-                                                 HTML("<b>Parity with population average</b>"),
-                                                 br(),
-                                                 br(),
-                                                 echarts4rOutput(paste0(dim_label, "_age_pop_", i), height = 50),
-                                                 column(4, align = "right", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>← Group is worse off</span>")),
-                                                 column(4, align = "center", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;margin-top:5px'>Group is same<br>as population</span>")),
-                                                 column(4, align = "left", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>Group is better off →</span>"))
-                                          ),
-                                          column(2)
-                                 )
-                        )
-
+          column(12, class = "folder-row", align = "center",
+                 style = "margin-bottom:10px; border-radius: 25px; border:solid 1.5px lightgrey; padding: 0px !important; width: 95%",
+                 fluidRow(style = paste0("background:", dim_color, "; margin: 0px; border-radius: 25px 25px 0px 0px;"),
+                          column(1, class="card-grow", align="center", uiOutput(paste0(dim_label, "_dimension_", i))),
+                          column(9, style="margin-top:10px", align = "left", uiOutput(paste0(dim_label, "_label_text_", i))),
+                          column(2, style = "margin-top:10px", align = "right", uiOutput(paste0(dim_label, "_population_value_", i)))
                  ),
-                 column(1)
+                 fluidRow(align= "center", class = "cards-row",
+                          column(4, class = "gender_dim",
+                                 div(class = paste("card-front card-grow", indicator_list[i]),
+                                     style = paste0("opacity:", opacity_val %>% filter(dimension == "F") %>% pull(opacity), "!important;"),
 
-        )
+                                     fluidRow(style = "height: 40%; z-index:1;",
+                                              uiOutput(paste0(dim_label, "_women_gap_", i), height=25),
+                                              uiOutput(paste0(dim_label, "_icon_", i, "_F")),
+                                              uiOutput(paste0(dim_label, "_text_", i, "_F"))
+                                     ),
+                                     fluidRow(style = "z-index:2",
+                                              echarts4rOutput(paste0(dim_label, "_women_ts_", i), height="100%")
+                                     )
+                                 ),
+                                 div(class = paste("card-front card-grow", indicator_list[i]),
+                                     style = paste0("opacity:", opacity_val %>% filter(dimension == "M") %>% pull(opacity), "!important;"),
+
+                                     fluidRow(style = "height: 40%; z-index:1;",
+                                              uiOutput(paste0(dim_label, "_men_gap_", i), height=25),
+                                              uiOutput(paste0(dim_label, "_icon_", i, "_M")),
+                                              uiOutput(paste0(dim_label, "_text_", i, "_M"))
+                                     ),
+                                     fluidRow(style = "z-index:2",
+                                              echarts4rOutput(paste0(dim_label, "_men_ts_", i), height="100%")
+                                     )
+                                 )
+                          ),
+                          column(4, class = paste0(indicator_list[i], " age_dim"),
+                                 div(class = paste("card-front card-grow", indicator_list[i]),
+                                     style = paste0("opacity:", opacity_val %>% filter(dimension == "YOUNG") %>% pull(opacity), "!important;"),
+
+                                     fluidRow(style = "height: 40%; z-index:1;",
+                                              uiOutput(paste0(dim_label, "_young_gap_", i), height = 25),
+                                              uiOutput(paste0(dim_label, "_icon_", i, "_YOUNG")),
+                                              uiOutput(paste0(dim_label, "_text_", i, "_YOUNG"))
+                                     ),
+                                     fluidRow(style = "z-index:2",
+                                              echarts4rOutput(paste0(dim_label, "_young_ts_", i), height="100%"))
+                                 ),
+                                 div(class = paste("card-front card-grow", indicator_list[i]),
+                                     style = paste0("opacity:", opacity_val %>% filter(dimension == "MID") %>% pull(opacity), "!important;"),
+
+                                     fluidRow(style = "height: 40%; z-index:1;",
+                                              uiOutput(paste0(dim_label, "_mid_gap_", i), height = 25),
+                                              uiOutput(paste0(dim_label, "_icon_", i, "_MID")),
+                                              uiOutput(paste0(dim_label, "_text_", i, "_MID"))
+                                     ),
+                                     fluidRow(style = "z-index:2",
+                                              echarts4rOutput(paste0(dim_label, "_mid_ts_", i), height="100%"))
+                                 ),
+                                 div(class = paste("card-front card-grow", indicator_list[i]),
+                                     style = paste0("opacity:", opacity_val %>% filter(dimension == "OLD") %>% pull(opacity), "!important;"),
+
+                                     fluidRow(style = "height: 40%; z-index:1;",
+                                              uiOutput(paste0(dim_label, "_old_gap_", i), height = 25),
+                                              uiOutput(paste0(dim_label, "_icon_", i, "_OLD")),
+                                              uiOutput(paste0(dim_label, "_text_", i, "_OLD"))
+                                     ),
+                                     fluidRow(style = "z-index:2",
+                                              echarts4rOutput(paste0(dim_label, "_old_ts_", i), height="100%"))
+                                 )
+                          ),
+                          column(4, class = paste0(indicator_list[i], " educ_dim"),
+
+                                 div(class = paste("card-front card-grow", indicator_list[i]),
+                                     style = paste0("opacity:", opacity_val %>% filter(dimension == "ISCED11_2_3") %>% pull(opacity), "!important;"),
+
+                                     fluidRow(style = "height: 40%; z-index:1;",
+                                              uiOutput(paste0(dim_label, "_secondary_gap_", i), height = 25),
+                                              uiOutput(paste0(dim_label, "_icon_", i, "_ISCED11_2_3")),
+                                              uiOutput(paste0(dim_label, "_text_", i, "_ISCED11_2_3"))
+                                     ),
+                                     fluidRow(style = "z-index:2",
+                                              echarts4rOutput(paste0(dim_label, "_secondary_ts_", i), height="100%")
+                                     )
+                                 ),
+                                 div(class = paste("card-front card-grow", indicator_list[i]),
+                                     style = paste0("opacity:", opacity_val %>% filter(dimension == "ISCED11_5T8") %>% pull(opacity), "!important;"),
+
+                                     fluidRow(style = "height: 40%; z-index:1;",
+                                              uiOutput(paste0(dim_label, "_tertiary_gap_", i), height = 25),
+                                              uiOutput(paste0(dim_label, "_icon_", i, "_ISCED11_5T8")),
+                                              uiOutput(paste0(dim_label, "_text_", i, "_ISCED11_5T8"))
+                                     ),
+                                     fluidRow(style = "z-index:2",
+                                              echarts4rOutput(paste0(dim_label, "_tertiary_ts_", i), height="100%")
+                                     )
+                                 )
+                          )
+                 ),
+                 fluidRow(style = "height:160px;", align = "center",
+                          column(2),
+                          column(8,
+                                 HTML("<b>Distance from population average</b>"),
+                                 br(),
+                                 br(),
+                                 echarts4rOutput(paste0(dim_label, "_age_pop_", i), height = 50),
+                                 column(4, align = "right", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>← Group is worse off</span>")),
+                                 column(4, align = "center", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;margin-top:5px'>", break_wrap("Group outcomes are similar to the population average", 20), "</span>")),
+                                 column(4, align = "left", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>Group is better off →</span>"))
+                          ),
+                          column(2)
+                 )
+          )
+        #   column(1)
+        # )
 
       })
     )
@@ -370,27 +348,22 @@ server <- function(input, output, session) {
   make_renderers <- function(dim_label, indicator_list) {
 
     if(dim_label == "mats") {
-      dim_title <- paste0("Material conditions in ", ifelse(countryName() == "OECD Average", "the OECD", countryName()))
-      dim_desc <- "The conditions that shape people’s economic options: income and wealth, housing and work and job quality indicators."
+      dim_title <- paste0("<b style='font-size:28px;margin-bottom:5px;color:#101d40!important;'>Material conditions for different population groups in ", ifelse(countryName() == "OECD Average", "the OECD", countryName()), "</b>")
+      dim_desc <- "The conditions that shape people’s economic options like <img src='income and wealth.png' width=0 height=0> income and wealth, <img src='housing.png' width=0 height=0> housing, and <img src='work and job quality.png' width=0 height=0> work and job quality."
     } else if(dim_label == "qualts") {
-      dim_title <- paste0("Quality of life in ", ifelse(countryName() == "OECD Average", "the OECD", countryName()))
-      dim_desc <- "The factors that encompass how well people are (and how well they feel they are), what they know and can do, and how healthy and safe their places of living are:<br>health, knowledge and skills, environmental quality, subjective well-being and safety."
+      dim_title <- paste0("<b style='font-size:28px;margin-bottom:5px;color:#101d40!important;'>Quality of life for different population groups in ", ifelse(countryName() == "OECD Average", "the OECD", countryName()), "</b>")
+      dim_desc <- "The conditions that reflect people's quality of life: <img src='health.png' width=0 height=0> health, <img src='knowledge and skills.png' width=0 height=0> knowledge and skills, <img src='environmental quality.png' width=0 height=0> environmental quality, <img src='subjective wellbeing.png' width=0 height=0> subjective well-being and <img src='safety.png' width=0 height=0> safety."
     } else if(dim_label == "coms") {
-      dim_title <-  paste0("Community relationships in ", ifelse(countryName() == "OECD Average", "the OECD", countryName()))
-      dim_desc <- "Community relationships encompass how connected and engaged people are, and how and with whom they spend their time: work-life balance, social connections, civic engagement. Social capital indicators are also included here."
+      dim_title <-  paste0("<b style='font-size:28px;margin-bottom:5px;color:#101d40!important;'>Community relationships for different population groups in ", ifelse(countryName() == "OECD Average", "the OECD", countryName()), "</b>")
+      dim_desc <- "The conditions that show how connected and engaged people are, and how they spend their time: <img src='worklife balance.png' width=0 height=0> work-life balance, <img src='social connections.png' width=0 height=0> social connections, and <img src='civic engagement.png' width=0 height=0> civic engagement."
     }
 
     output[[paste0(dim_label, "_dimension_title")]] <- renderUI({
 
-      fluidRow(
-        fluidRow(align = "center",
-                 HTML(paste0("<b style='font-size:22px;'>", dim_title,"</b>
+      HTML(paste0("<b style='font-size:22px;'>", dim_title,"</b>
                                  <br>
-                                 <span style = 'font-size:1.5rem'>", dim_desc,"</span>
-                                <br>"))
-        ),
-        br()
-      )
+                                 <span style = 'font-size:1.5rem'>", dim_desc,"</span>"))
+
 
     })
 
@@ -414,9 +387,9 @@ server <- function(input, output, session) {
         drop_na() %>%
         pull
 
-      plot_df <- dat_country() %>%
+      plot_df_raw <- dat_country() %>%
         filter(measure %in% measures_by_cluster(), dimension == dim_val) %>%
-        select(measure, perf_val, perf_val_name) %>%
+        select(measure, label, image, perf_val, perf_val_name) %>%
         distinct() %>%
         mutate(
           # remove bc cleaned
@@ -434,42 +407,52 @@ server <- function(input, output, session) {
             perf_val == "#CF597E"   ~ "#f5e1e6",
             TRUE                    ~ "#ececec"
           )
-        ) %>%
+        )
+
+      indicator_names <- plot_df_raw %>%
+        group_by(perf_val_name) %>%
+        summarize(
+          label_text = paste0( "<img src='", image,"' height=10 width=10>", label, collapse = "<br>")
+        )
+
+      plot_df <- plot_df_raw %>%
         count(perf_val, perf_val_light, perf_val_name) %>%
         mutate(
           n   = ifelse(is.na(n), 0, n),
           pct = 100 * n / sum(n)
         ) %>%
+        merge(indicator_names, by = "perf_val_name") %>%
         arrange(match(perf_val_name, rev(priority))) %>%
         mutate(
           first_seg = row_number() == 1L,
           last_seg  = row_number() == n(),
-          standard_style = "display:inline-block;height:25px;line-height:20px;"
+          standard_style = "display:inline-block;height:25px;line-height:20px;",
+          hover_text = paste0("<span class='hidden-text'>", label_text, "</span>")
         ) %>%
         mutate(
           html = case_when(
-            first_seg & !last_seg ~ paste0("<span style='", standard_style,
-                               "border: solid 1.5px ", perf_val, ";border-right:0px;",
-                               "border-radius: 25px 0px 0px 25px; width:", pct, "%;",
-                               "background:", perf_val_light,";'><b>", n, "</b></span>"),
-            last_seg & !first_seg ~ paste0("<span style='", standard_style,
-                              "border: solid 1.5px ", perf_val, ";border-left:0px;",
-                              "border-radius: 0px 25px 25px 0px; width:", pct, "%;",
-                              "background:", perf_val_light,";'><b>", n, "</b></span>"),
-            first_seg & last_seg ~ paste0("<span style='", standard_style,
-                                           "border: solid 1.5px ", perf_val, ";",
-                                           "border-radius: 25px; width:", pct, "%;",
-                                           "background:", perf_val_light,";'><b>", n, "</b></span>"),
-            TRUE ~ paste0("<span style='", standard_style,
+            first_seg & !last_seg ~ paste0("<span class = 'vis-text' style='", standard_style,
+                                           "border: solid 1.5px ", perf_val, ";border-right:0px;",
+                                           "border-radius: 25px 0px 0px 25px; width:", pct, "%;",
+                                           "background:", perf_val_light,";'><b>", n, "</b>", hover_text,"</span>"),
+            last_seg & !first_seg ~ paste0("<span class = 'vis-text' style='", standard_style,
+                                           "border: solid 1.5px ", perf_val, ";border-left:0px;",
+                                           "border-radius: 0px 25px 25px 0px; width:", pct, "%;",
+                                           "background:", perf_val_light,";'><b>", n, "</b>", hover_text,"</span>"),
+            first_seg & last_seg ~ paste0("<span class = 'vis-text' style='", standard_style,
+                                          "border: solid 1.5px ", perf_val, ";",
+                                          "border-radius: 25px; width:", pct, "%;",
+                                          "background:", perf_val_light,";'><b>", n, "</b>", hover_text,"</span>"),
+            TRUE ~ paste0("<span class = 'vis-text' style='", standard_style,
                           "border: solid 1.5px ", perf_val, ";border-right:0px;border-left:0px;",
-                          "width:", pct, "%;background:", perf_val_light,";'><b>", n, "</b></span>")
+                          "width:", pct, "%;background:", perf_val_light,";'><b>", n, "</b>", hover_text,"</span>")
           )
         )
 
       output[[paste0(dim_label, "_summary_", dim_val)]] <- renderUI({
 
         div(
-          fluidRow(align="center", style="margin-right:0px;padding-left:0px;", HTML(paste0("<b style='font-size:1rem;color:", dim_color, "'>", dim_name, "</b>"))),
+          fluidRow(align="center", style="margin-right:0px;padding-left:0px;", HTML(paste0("<span style='font-size:1rem;'>", dim_name, "</span>"))),
           fluidRow(class="card-grow", align = "center", style="margin-left:0px;padding-left:0px;", HTML(paste0(plot_df$html, collapse = "")))
         )
 
@@ -632,13 +615,13 @@ server <- function(input, output, session) {
           output[[paste0(dim_label, "_icon_", i, "_", dim_name)]] <- renderUI({
             dl <- dat_latest(); req(nrow(dl))
             tidy <- dl %>% filter(measure == measure_name, dimension == dim_name)
-            if (!nrow(tidy) || unique(tidy$ref_area) %in% c("OECD", partner_countries)) return(div())
-            div(
-              div(style="position:absolute;top:5px;left:32.5px", class=paste0("type_", tidy$icon),
-                  bs_icon(tidy$icon, size="1.825rem")),
-              div(style="position:absolute;top:5px;left:52.5px",
-                  HTML("<span style='font-size:8px;display:inline-block;line-height:8px;text-align:left;'>OECD<br>tier</span>"))
-            )
+            if (!nrow(tidy) || unique(tidy$ref_area) %in% c("OECD", partner_countries) || tidy$icon == "three-dots.png") return(div())
+            HTML(paste0(
+              "<div class='indicator-pin'>",
+              "<img src='", tidy$icon, "' height='25' width='25'>",
+              "<span class='indicator-label'>OECD<br>tier</span>",
+              "</div>"
+            ))
           })
         })
       }

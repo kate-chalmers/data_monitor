@@ -22,7 +22,7 @@ lollipopPlotter_fun <- function(full_dat, measure_name, dimension_group_name) {
         TRUE ~ ratio
       ),
       ratio_val = round(ratio_val, 3)
-      ) %>%
+    ) %>%
     ungroup()
 
   lines <- lapply(measure_name, function(indicator) {
@@ -51,7 +51,7 @@ lollipopPlotter_fun <- function(full_dat, measure_name, dimension_group_name) {
              min = 0.5,
              max = 1.5,
              interval = 0.25
-             ) |>
+    ) |>
     e_mark_line(data = lines[1:2],
                 lineStyle = list(
                   type = "solid",
@@ -109,7 +109,6 @@ inequalitySeriesPlotter_fun <- function(full_dat, measure_name, dimension_name) 
         formatter = htmlwidgets::JS(paste0("
     function(params){
 
-      // Start tooltip with red font color span
       let rez = `<span style='font-size:10px!important;line-height:0px;'>` +
                 `<b style='font-size:10px!important'>Year: </b>` + params[0].value[0] +
                 `<br>`;
@@ -118,7 +117,6 @@ inequalitySeriesPlotter_fun <- function(full_dat, measure_name, dimension_name) 
         rez += `<b style='font-size:10px!important'>Value:</b> ` + item.value[1];
       });
 
-      // Close the red font span
       rez += '</span>';
 
       return rez;
@@ -197,44 +195,40 @@ gapPlotter_fun <- function(full_dat, measure_name, dimension_name) {
 
   if(nrow(fastest_text) > 0 && dimension_name %in% fastest_text$dimension) {
     if(gap_dat$gap_value == "Narrowing") {
-      fluidRow(style = "position:absolute;top:5px;left:35px",
-        # fluidRow(style = "font-size: 10px;",paste0(gap_dat$gap_value)),
-        fluidRow(HTML(paste0("<a class='a-image'>
+      HTML(paste0("<div class='gap-pin'>",
+                  "<a class='a-image'>
                              <img src='", gap_dat$gap_image, "' height=20px width=20px>
                              <span class='a-span'>", gap_dat$gap_value,"</span>
-                             </a>"))),
-        # fluidRow(style = "font-size: 10px;",paste0(fastest_text$change)),
-      )
+                             </a>", "</div>")
+           )
 
     } else {
-      fluidRow(style = "position:absolute;top:5px;left:35px",
-        # fluidRow(style = "font-size: 10px;",paste0(gap_dat$gap_value)),
-        fluidRow(HTML(paste0("<a class='a-image'>
+      HTML(paste0("<div class='gap-pin'>",
+      "<a class='a-image'>
                              <img src='", gap_dat$gap_image, "' height=20px width=20px>
                              <span class='a-span'>", gap_dat$gap_value,"</span>
-                             </a>"))),
-        # fluidRow(style = "font-size: 10px;",paste0(fastest_text$change)),
-      )
+                             </a>", "</div>")
+           )
     }
 
   } else {
     if(gap_dat$gap_value == "Narrowing") {
-      fluidRow(style = "position:absolute;top:5px;left:35px",
-        # fluidRow(style = "font-size: 10px;",paste0(gap_dat$gap_value)),
-        fluidRow(HTML(paste0("<a class='a-image'>
+      HTML(paste0("<div class='gap-pin'>",
+      "<a class='a-image'>
                              <img src='", gap_dat$gap_image, "' height=20px width=20px>
                              <span class='a-span'>", gap_dat$gap_value,"</span>
-                             </a>")))
-      )
+                             </a>", "</div>")
+           )
 
     } else {
-      fluidRow(style = "position:absolute;top:5px;left:35px",
-        # fluidRow(style = "font-size: 10px;",paste0(gap_dat$gap_value)),
-        fluidRow(HTML(paste0("<a class='a-image'>
+      HTML(paste0("<div class='gap-pin'>",
+
+      "<a class='a-image'>
                              <img src='", gap_dat$gap_image, "' height=20px width=20px>
                              <span class='a-span'>", gap_dat$gap_value,"</span>
-                             </a>")))
-      )
+                             </a>", "</div>")
+           )
+
     }
   }
 
