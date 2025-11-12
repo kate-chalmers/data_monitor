@@ -150,7 +150,7 @@ server <- function(input, output, session) {
     inequality_table <- fluidRow(
 
       fluidRow(
-        div(
+        fluidRow(
           column(2),
           column(8, align = "center",
                  uiOutput(paste0(dim_label, "_dimension_title")) %>% withSpinner(color="#0dc5c1"),
@@ -159,24 +159,29 @@ server <- function(input, output, session) {
                  ),
           column(2)
         ),
-        div(
-          column(3),
-          column(6, align="center",
-                 HTML("Number of well-being outcomes that have improved, show no clear change or have deteriorated from 2015 to the latest available year:"),
-                 br(),
-                 fluidRow(
-                   uiOutput(paste0(dim_label, "_summary_F")),
-                   uiOutput(paste0(dim_label, "_summary_M")),
+          fluidRow(
+            column(2),
+            column(8, align="center",
+                   HTML("Number of well-being outcomes that have improved, shown no clear change or have deteriorated from 2015 to the latest available year:"),
                    br(),
-                   uiOutput(paste0(dim_label, "_summary_YOUNG")),
-                   uiOutput(paste0(dim_label, "_summary_MID")),
-                   uiOutput(paste0(dim_label, "_summary_OLD")),
-                   br(),
-                   uiOutput(paste0(dim_label, "_summary_ISCED11_2_3")),
-                   uiOutput(paste0(dim_label, "_summary_ISCED11_5T8")))
-          ),
-          column(3)
-        )
+                   fluidRow(
+                     column(4, style = "margin-top: 20px",
+                            uiOutput(paste0(dim_label, "_summary_F")),
+                            uiOutput(paste0(dim_label, "_summary_M"))
+                     ),
+                     column(4,
+                            uiOutput(paste0(dim_label, "_summary_YOUNG")),
+                            uiOutput(paste0(dim_label, "_summary_MID")),
+                            uiOutput(paste0(dim_label, "_summary_OLD"))
+                     ),
+                     column(4, style = "margin-top: 20px",
+                            uiOutput(paste0(dim_label, "_summary_ISCED11_2_3")),
+                            uiOutput(paste0(dim_label, "_summary_ISCED11_5T8")))
+                   )
+            ),
+            column(2)
+          )
+
       ),
       fluidRow(align = "center", style="margin-top:0px;",
                HTML(
@@ -200,7 +205,7 @@ server <- function(input, output, session) {
 
           column(12, class = "folder-row", align = "center",
                  style = "margin-bottom:10px; border-radius: 25px; border:solid 1.5px lightgrey; padding: 0px !important; width: 95%",
-                 fluidRow(style = paste0("background:", dim_color, "; margin: 0px; border-radius: 25px 25px 0px 0px;"),
+                 fluidRow(style = paste0("background:", dim_color, "; margin: 0px; border-radius: 23px 23px 0px 0px;"),
                           column(1, class="card-grow", align="center", uiOutput(paste0(dim_label, "_dimension_", i))),
                           column(9, style="margin-top:10px", align = "left", uiOutput(paste0(dim_label, "_label_text_", i))),
                           column(2, style = "margin-top:10px", align = "right", uiOutput(paste0(dim_label, "_population_value_", i)))
@@ -309,8 +314,6 @@ server <- function(input, output, session) {
                           column(2)
                  )
           )
-        #   column(1)
-        # )
 
       })
     )
@@ -452,7 +455,7 @@ server <- function(input, output, session) {
       output[[paste0(dim_label, "_summary_", dim_val)]] <- renderUI({
 
         div(
-          fluidRow(align="center", style="margin-right:0px;padding-left:0px;", HTML(paste0("<span style='font-size:1rem;'>", dim_name, "</span>"))),
+          fluidRow( align="center", style="margin-right:0px;padding-left:0px;", HTML(paste0("<span style='font-size:1rem;'>", dim_name, "</span>"))),
           fluidRow(class="card-grow", align = "center", style="margin-left:0px;padding-left:0px;", HTML(paste0(plot_df$html, collapse = "")))
         )
 
@@ -608,7 +611,7 @@ server <- function(input, output, session) {
             if (!nrow(tidy)) {
               div()
             } else {
-              tagList(div(style="margin:0px", HTML(tidy$dimension_tidy, tidy$value_tidy)))
+              tagList(div(style="margin-top:7.5px", HTML(tidy$dimension_tidy, tidy$value_tidy)))
             }
           })
 
