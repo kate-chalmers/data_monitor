@@ -13,7 +13,7 @@ body, * {
   color: #101d40b3 !important;
 }
 
-body > div.container-fluid > div:nth-child(2) > div.col-sm-8 > div:nth-child(6) {
+body > div.container-fluid > div:nth-child(2) > div.col-sm-8 > div:nth-child(1) {
   margin-bottom: 0px;
 }
 
@@ -43,6 +43,11 @@ a, a:hover, a:visited {
   visibility: visible;
 }
 
+.hidden-text {
+  padding: 5px;
+  width: 120px;
+}
+
 .vis-text {
   position: relative;         /* ensures tooltip z-index is scoped properly */
 }
@@ -55,20 +60,11 @@ a, a:hover, a:visited {
 .type_3-circle-fill > svg > path { color: #CF597E; }
 .type_three-dots > svg > path { color: #999999; }
 
-/* Cards */
-.card {
-  height: 150px;
-  width: 100%;
-  padding: 0 !important;
-  background: #FFFFFF !important;
-  overflow: hidden;
-  display: inline-block;
-}
+
 
 .card-grow { transition: all .2s ease-in-out; }
 .card-grow:hover { transform: scale(1.1); cursor: pointer; }
 
-/* Minimal card-front base; width is controlled by layout section below */
 .card-front {
   height: 150px;
   backface-visibility: hidden;
@@ -81,10 +77,18 @@ a, a:hover, a:visited {
   padding: 5px 5px 0 5px;
   background: #FFFFFF;
   line-height: 100%;
-  overflow: hidden;
+  overflow: hidden;          /* 🔒 keep charts inside */
   width: 100% !important;
   margin-top: 5px;
   margin-bottom: 5px;
+  padding-bottom: 35px;
+}
+
+/* New outer wrapper that can overflow freely */
+.card-wrapper {
+  position: relative;
+  display: inline-block;
+  overflow: visible;         /* ✨ icons can stick out of the card */
 }
 
 
@@ -113,19 +117,7 @@ a, a:hover, a:visited {
   scroll-snap-align: start;
 }
 
-/* Optional: if you prefer no horizontal scroll and hard wrapping instead,
-   swap the grid block above with the flex version below:
 
-.folder-row > .row:nth-of-type(2) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: stretch;
-  justify-content: space-between;
-}
-.folder-row > .row:nth-of-type(2) > div { display: contents; }
-.folder-row .card-front { flex: 1 1 calc(100%/6 - 16px); min-width: 220px; }
-*/
 
 /* ======== Misc visual helpers you already use ======== */
 
@@ -221,8 +213,8 @@ a, a:hover, a:visited {
 }
 
 .dim-icon-text {
-  font-size:12px;
-  line-height: 12px;
+  font-size:1rem;
+  line-height: 1rem;
 }
 
 .dim-icon-hover .dim-icon-text {
@@ -231,8 +223,8 @@ a, a:hover, a:visited {
   bottom: 0;
   width: 100%;
   padding: 5px;
-  border-radius: 25px;
-  background: rgba(255,255,255,.5);
+  border-radius: 10px;
+  background: rgba(255,255,255,.9);
 }
 
 .dim-icon-hover:hover .dim-icon-text {
@@ -247,7 +239,7 @@ a, a:hover, a:visited {
 
 
 /* === Mobile stacking & no scrollbars in cards row === */
-@media (max-width: 1180px) {
+@media (max-width: 1120px) {
   /* Stack groups vertically */
   .folder-row > .row:nth-of-type(2) {
     display: block;
@@ -258,8 +250,8 @@ a, a:hover, a:visited {
   /* Stack cards within each group */
   .folder-row > .row:nth-of-type(2) > div {
     display: flex;
-    flex-direction: column;   /* stack cards on top of each other */
-    align-items: center;      /* center cards in group */
+    flex-direction: column;
+    align-items: center;
     gap: 12px;
     margin-bottom: 16px;
   }
@@ -267,7 +259,7 @@ a, a:hover, a:visited {
   /* Make cards full width, no overflow */
   .folder-row .card-front {
     width: 100% !important;
-    max-width: 500px;         /* optional: limit max width on mobile */
+    max-width: 500px;
     overflow: hidden;
   }
 }
@@ -311,12 +303,12 @@ body > div.container-fluid > div:nth-child(5) > div.col-sm-8 {
 }
 .card-front .gap-pin a.a-image > .a-span {
   position: absolute;
-  top: 100%;                 /* directly below the icon */
-  left: 50%;                 /* center horizontally */
+  top: 100%;
+  left: 50%;
   transform: translateX(-50%);
-  white-space: normal;       /* allow wrapping */
-  width: max-content;        /* expand as needed but wrap if too long */
-  max-width: 80px;           /* optional: keep within the card */
+  white-space: normal;
+  width: max-content;
+  max-width: 80px;
   text-align: center;
   font-size: 9px;
   line-height: 10px;

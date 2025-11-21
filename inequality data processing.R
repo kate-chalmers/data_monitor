@@ -2,18 +2,15 @@ source("./global_processing.R")
 
 # Pull break treated data and clean for analysis
 full_dat <- readRDS("S:/Data/WDP/Well being database/Automated database/output/break_treated_final_dataset.RDS") %>%
-  filter(!dimension == "ISCED11_1", time_period >= 2010, !measure %in% dropped_indics) %>%
+  rbind(oecd_avg_dat) %>%
+  # Voter turnout included due to infrequent updates
+  filter(!dimension == "ISCED11_1", time_period >= 2015, 
+         # Voter turnout is not updated but should eventually be
+         !measure %in% c(dropped_indics, "8_2"), !measure %in% inequality_dropped) %>%
   select(ref_area, time_period, measure, dimension, unit_measure, obs_value) %>%
   distinct() %>%
   mutate(unit_measure = str_remove_all(unit_measure, "_SUB")) 
 
-# group_one <- "F"
-# group_two <- "M"
-# group_three <- "ISCED11_2_3"
-# group_four <- "ISCED11_5T8"
-# group_five <- "YOUNG"
-# group_six <- "MID"
-# group_seven <- "OLD"
 group_list <- c("F", "M", "ISCED11_2_3", "ISCED11_5T8", "YOUNG", "MID", "OLD")
 
 gap_filler <- full_dat %>%
@@ -26,15 +23,45 @@ gap_filler <- full_dat %>%
   ungroup() 
 
 oecd_dat <- twoPointAverage(full_dat, group_list) %>%
+  filter(!measure %in% oecd_avg_measures_gap) %>%
   mutate(ref_area = ifelse(grepl("OECD", ref_area), "OECD", ref_area)) 
 
 tidy_dat <- full_dat %>%
-  filter(dimension %in% c(group_list, "_T")) %>%
+  filter(dimension %in% c(group_list)) %>%
   group_by(ref_area, measure, unit_measure, dimension) %>%
+  filter(time_period == max(time_period) | time_period == min(time_period)) 
+
+# Make sure country average matches time range of population groups
+country_avg_merge <- tidy_dat %>% 
+  group_by(ref_area, measure) %>%
   filter(time_period == max(time_period) | time_period == min(time_period)) %>%
+  ungroup() %>%
+  select(ref_area, time_period, measure) %>%
+  distinct()
+
+tidy_dat <- full_dat %>%
+  filter(dimension == "_T") %>%
+  merge(country_avg_merge, by = c("ref_area", "measure", "time_period")) %>%
+  rbind(tidy_dat) %>%
+  arrange(measure, ref_area, dimension, time_period) %>%
+  group_by(ref_area, measure, unit_measure, dimension) %>%
   mutate(label = ifelse(time_period == max(time_period), "latest", "earliest")) %>%
   ungroup() %>%
-  rbind(oecd_dat) 
+  rbind(oecd_dat)
+  
+
+# # Only consider years where all population groups possible are available    
+# tidy_dat <- full_dat %>%
+#     group_by(ref_area, measure, unit_measure, time_period) %>%
+#     mutate(n = n()) %>%
+#     ungroup() %>%
+#     filter(n == max(n)) %>%
+#     select(-n) %>%
+#     group_by(ref_area, measure, unit_measure, dimension) %>%
+#     filter(time_period == max(time_period) | time_period == min(time_period)) %>%
+#     mutate(label = ifelse(time_period == max(time_period), "latest", "earliest")) %>%
+#     ungroup() %>%
+#     rbind(oecd_dat)
 
 
 # Ratio -------------------------------------------------------------------
@@ -66,7 +93,10 @@ measure_list <- ratio_dat %>% distinct(measure) %>% pull
 # Lollipop parity plots ---------------------------------------------------
 
 lollipop_dat <- ratio_dat %>%
-  filter(label == "latest") %>%
+  group_by(measure, ref_area) %>%
+  mutate(label2 = ifelse(!any(label == "latest"), "latest", "not")) %>%
+  ungroup() %>%
+  filter(label == "latest" | label2 == "latest") %>%
   select(measure, ref_area, contains("ratio")) %>%
   pivot_longer(!c(measure, ref_area), names_to = "dimension", values_to = "ratio") %>%
   mutate(dimension = str_remove_all(dimension, "_ratio"),
@@ -117,6 +147,11 @@ time_series_color <- time_series_color_int %>%
   select(ref_area, measure, all_of(group_list)) %>%
   pivot_longer(!c(ref_area, measure), names_to = "dimension", values_to = "perf_val") %>%
   mutate(
+    # No sig change data for breakdowns in PISA/PIAAC
+    perf_val = case_when(
+      measure %in% c("6_1", "6_2", "6_3", "6_4", "6_5") ~ "#999999",
+      TRUE ~ perf_val
+    ),
     perf_val_name = case_when(
       perf_val == "#0F8554" ~ "Improving",
       perf_val == "goldenrod" ~ "No significant change",
@@ -160,10 +195,10 @@ tiers_dat <- full_dat %>%
   complete(ref_area = unique(all_countries)) %>%
   ungroup() %>%
   mutate(icon = case_when(
-    tiers == 1 ~ "1-circle-fill",
-    tiers == 2 ~ "2-circle-fill",
-    tiers == 3 ~ "3-circle-fill",
-    TRUE ~ "three-dots"
+    tiers == 1 ~ "1-circle-fill.png",
+    tiers == 2 ~ "2-circle-fill.png",
+    tiers == 3 ~ "3-circle-fill.png",
+    TRUE ~ "three-dots.png"
   )) %>%
   drop_na(icon) %>%
   select(-tiers)
@@ -219,6 +254,15 @@ gap_dat <- tidy_dat %>%
       grepl("ISCED11_2_3", name) ~ "ISCED11_2_3",
       grepl("ISCED11_5T8", name) ~ "ISCED11_5T8"
     ),
+    dimension_long = case_when(
+      dimension == "F" ~ "Women",
+      dimension == "M" ~ "Men",
+      dimension == "ISCED11_2_3" ~ "Secondary educated",
+      dimension == "ISCED11_5T8" ~ "Tertiary educated",
+      dimension == "YOUNG" ~ "Young adults",
+      dimension == "MID" ~ "Middle-aged",
+      dimension == "OLD" ~ "Older adults"
+    ),
     # See if gap is moving away/towards parity (1)
     gap_value = case_when(
       earliest > 1 & latest > 1 & earliest < latest ~ "widening",
@@ -226,8 +270,8 @@ gap_dat <- tidy_dat %>%
       earliest < 1 & latest < 1 & earliest < latest ~ "narrowing",
       earliest < 1 & latest < 1 & earliest > latest ~ "widening",
       # This doesn't work great with education since we don't have primary
-      earliest < 1 & latest > 1 ~ "Flip to better off than the population",
-      earliest > 1 & latest < 1 ~ "Flip to worse off than the population",
+      earliest < 1 & latest > 1 ~ paste0("Flip: ", tolower(dimension_long), " are now better off than population average"),
+      earliest > 1 & latest < 1 ~ paste0("Flip: ", tolower(dimension_long), " are now worse off than population average"),
       abs(earliest - latest) < 0.05 ~ "no change",
       TRUE ~ "no change"
     ),
@@ -250,6 +294,7 @@ gap_dat <- tidy_dat %>%
 latest_dat <- tidy_dat %>%
   filter(label == "latest", measure %in% measure_list, !dimension == "_T") %>%
   select(measure, ref_area, dimension, latest_year = time_period, latest = obs_value)
+
   
 earliest_dat <- tidy_dat %>%
   filter(label == "earliest", measure %in% measure_list, !dimension == "_T") %>%
@@ -258,15 +303,18 @@ earliest_dat <- tidy_dat %>%
 
 # Time series and final cleaning ------------------------------------------
 
+oecd_avg_ts <- timeSeriesAverage(full_dat, group_list) %>% filter(!measure %in% oecd_avg_measures_gap)
+
 time_series_dat <- full_dat %>%
-  rbind(timeSeriesAverage(full_dat, group_list)) %>%
+  rbind(oecd_avg_ts) %>%
   filter(!dimension == "_T") %>%
+  # filter(measure == "2_5", ref_area == "OECD") %>%
   mutate(ref_area = ifelse(grepl("OECD", ref_area), "OECD", ref_area)) %>%
   merge(gap_filler, by = c("ref_area", "measure", "dimension"), all = T) %>%
   left_join(tiers_dat) %>%
   left_join(time_series_color) %>%
   left_join(gap_dat) %>%
-  left_join(dict %>% select(measure, label, unit, unit_tag, round_val, direction, position)) %>%
+  left_join(dict %>% select(measure, label, label_fr, unit, unit_fr, unit_tag, unit_tag_fr, round_val, direction, position)) %>%
   left_join(lollipop_dat) %>%
   left_join(latest_dat) %>%
   left_join(earliest_dat) %>%
@@ -274,17 +322,20 @@ time_series_dat <- full_dat %>%
   arrange(measure, dimension, ref_area, time_period) %>%
   mutate(measure2 = measure) %>%
   separate(measure2, into = "cat") %>%
+  # filter(ref_area == "OECD", measure == "2_5") %>%
   mutate(
-    gap_value = ifelse(is.na(gap_value), "no data", gap_value),
-    # underline = ifelse(is.na(underline), "span", "span"),
-    icon = ifelse(is.na(icon), "three-dots", icon),
+    latest = ifelse(is.na(latest) & !is.na(earliest), earliest, latest),
+    latest_year = ifelse(is.na(latest_year) & !is.na(earliest_year), earliest_year, latest_year),
+    gap_value = ifelse(is.na(gap_value), "not enough data", gap_value),
+    icon = ifelse(is.na(icon), "three-dots.png", icon),
     value_tidy = case_when(!is.na(latest) ~ prettyNum(round(latest, round_val), big.mark = " ")),
     value_tidy = case_when(
       is.na(unit_tag) & !is.na(value_tidy) ~ paste0("<span style='font-size:24px;line-height:25px;'>", value_tidy, "</span>"),
       position == "before" & !is.na(unit_tag) & !is.na(value_tidy) ~ paste0(unit_tag, "<span style='font-size:24px;line-height:25px;'>", value_tidy, "</span>"),
       position == "after" & !is.na(unit_tag) & !is.na(value_tidy) ~ paste0("<span style='font-size:24px;line-height:25px;'>", value_tidy,"</span>", unit_tag),
       (is.na(position) | position == "none") & !is.na(unit_tag) & !is.na(value_tidy) ~ paste0("<span style='font-size:24px;line-height:25px;'>", value_tidy,"</span>"),
-      TRUE ~ paste("<span style='font-size:24px;'>No data</span><br>")
+      is.na(value_tidy) ~  paste("<span style='font-size:24px;line-height:25px;'>No data</span><br>"),
+      TRUE ~ paste0("<span style='font-size:24px;line-height:25px;'>", value_tidy, "</span>")
     ),
     image = case_when(
       cat == "1" ~ "income and wealth.png",
@@ -305,6 +356,23 @@ time_series_dat <- full_dat %>%
     ),
     image_caption = str_remove_all(image, "\\.png"),
     image_caption = tools::toTitleCase(image_caption),
+    image_caption_fr = case_when(
+      cat == "1" ~ "Revenu et patrimoine",
+      cat == "2" ~ "Travail et qualité de l'emploi",
+      cat == "3" ~ "Logement",
+      cat == "4" ~ "Équilibre travail-vie privée",
+      cat == "5" ~ "Santé",
+      cat == "6" ~ "Connaissances et compétences",
+      cat == "7" ~ "Liens sociaux",
+      cat == "8" ~ "Sécurité",
+      cat == "9" ~ "Qualité environnementale",
+      cat == "10" ~ "Engagement civique",
+      cat == "11" ~ "Bien-être subjectif",
+      cat == "12" ~ "Capital naturel",
+      cat == "13" ~ "Capital humain",
+      cat == "14" ~ "Capital social",
+      cat == "15" ~ "Capital économique"
+    ),
     dim_color = case_when(
       cat == "1" ~ "#3597d6",
       cat == "3" ~ "#2fa894",
@@ -330,11 +398,30 @@ time_series_dat <- full_dat %>%
       dimension == "YOUNG" ~ "Young adults",
       dimension == "MID" ~ "Middle-aged",
       dimension == "OLD" ~ "Older adults"
+    ),
+    dimension_long_fr = case_when(
+      dimension == "F" ~ "Femmes",
+      dimension == "M" ~ "Hommes",
+      dimension == "ISCED11_2_3" ~ "Niveau d’études<br>secondaire",
+      dimension == "ISCED11_5T8" ~ "Niveau d’études<br>supérieur",
+      dimension == "YOUNG" ~ "Jeunes adultes",
+      dimension == "MID" ~ "Adultes d’âge moyen",
+      dimension == "OLD" ~ "Seniors"
     )
   ) %>%
   drop_na(dimension_long) %>%
   mutate(
-    dimension_tidy = paste0("<br><br><b style='font-size:12px;margin-bottom:5px;color:", dimension_color,";'>", break_wrap(dimension_long, 30), "</b><br><span style='font-size:1px'></span>"),
+    dimension_color = case_when(
+      dimension == "YOUNG" ~ "#88CCEE",
+      dimension == "MID" ~ "#661100",
+      dimension == "OLD" ~ "#DDCC77",
+      dimension == "M" ~ "#117733",
+      dimension == "F" ~ "#332288",
+      dimension == "ISCED11_2_3" ~ "#AA4499",
+      dimension == "ISCED11_5T8" ~ "#44AA99"
+    ),
+    dimension_tidy = paste0("<br><br><b style='font-size:12px;margin-bottom:5px;color:", dimension_color,"!important;'>", break_wrap(dimension_long, 30), "</b><br><span style='font-size:1px'></span>"),
+    dimension_tidy_fr = paste0("<br><br><b style='font-size:12px;margin-bottom:5px;color:", dimension_color,"!important;'>", break_wrap(dimension_long_fr, 30), "</b><br><span style='font-size:1px'></span>"),
     dimension_group = case_when(
       dimension %in% c("F", "M") ~ "gender",
       dimension %in% c("YOUNG", "MID", "OLD") ~ "age",
@@ -350,40 +437,82 @@ time_series_dat <- full_dat %>%
       grepl("better off", gap_value) & dimension == "OLD" ~ "flip to group.png",
       grepl("better off", gap_value) & dimension == "ISCED11_5T8" ~ "flip to group.png",
       grepl("better off", gap_value) & dimension == "ISCED11_2_3" ~ "flip to group.png",
+      gap_value == "not enough data" ~ "no data.png",
       TRUE ~ paste0(tolower(gap_value), ".png")
     ),
     gap_value = tools::toTitleCase(gap_value),
-    gap_value = case_when(
-      gap_value %in% c("Narrowing") ~ paste0("Moving toward the population"),
-      gap_value %in% c("Widening") ~ paste0("Moving away from the population"),
-      gap_value == "No Change" ~ "No Change",
+    gap_value_fr = case_when(
+      gap_value %in% c("Narrowing") ~ paste0("L’écart par rapport à la moyenne de la population se réduit"),
+      gap_value %in% c("Widening") ~ paste0("L’écart par rapport à la moyenne de la population se creuse"),
+      gap_value == "No Change" ~ "Stabilité",
+      grepl("Worse Off", gap_value) ~ "Basculement : la situation du groupe de population est désormais moins bonne que la moyenne de la population",
+      grepl("Better Off", gap_value) ~ "Basculement : la situation du groupe de population est désormais meilleure que la moyenne de la population",
+      gap_value == "Not Enough Data" ~ "Données insuffisantes",
       TRUE ~ gap_value
     ),
-    gap_value = str_wrap(gap_value, 15),
+    gap_value = case_when(
+      gap_value %in% c("Narrowing") ~ paste0("Gap with population average is narrowing"),
+      gap_value %in% c("Widening") ~ paste0("Gap with population average is widening"),
+      gap_value == "No Change" ~ "No change",
+      TRUE ~ gap_value
+    ),
+    # gap_value = str_wrap(gap_value, 15),
     opacity = ifelse(grepl("No data", value_tidy), 0.6, 1)
   ) %>%
   select(-cat)
 
 
 saveRDS(time_series_dat, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/gap_page/data/full inequalities data.RDS")
+saveRDS(time_series_dat, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/gap_page_fr/data/full inequalities data.RDS")
+
 
 latest_total <- tidy_dat %>%
-  filter(dimension == "_T", measure %in% measure_list, label == "latest") %>%
-  merge(dict %>% select(measure, unit_tag = unit_tag_clean, round_val, position), by = "measure") %>%
+  group_by(measure, dimension, ref_area) %>%
+  mutate(label2 = ifelse(!any(label == "latest"), "latest", "not")) %>%
+  ungroup() %>%
+  filter(label == "latest" | label2 == "latest") %>%
+  filter(dimension == "_T", measure %in% measure_list) %>%
+  merge(dict %>% select(measure, unit_tag = unit_tag_clean, unit_tag_fr = unit_tag_clean_fr, round_val, position), by = "measure") %>% 
   mutate(
     value_tidy = case_when(!is.na(obs_value) ~ prettyNum(round(obs_value, round_val), big.mark = " ")),
+    value_tidy_fr = case_when(
+      is.na(unit_tag_fr) & !is.na(value_tidy) ~ paste0("", value_tidy, ""),
+      position == "before" & !is.na(unit_tag_fr) & !is.na(value_tidy) ~ paste0(unit_tag_fr, "", value_tidy, ""),
+      position == "after" & !is.na(unit_tag_fr) & !is.na(value_tidy) & unit_tag_fr == "%" ~ paste0("", value_tidy,"<span style='font-size:1.5rem'>", unit_tag_fr, "</span>"),
+      position == "after" & !is.na(unit_tag_fr) & !is.na(value_tidy) & !unit_tag_fr == "%" ~paste0("", value_tidy,"<span style='font-size:1.5rem'> ", unit_tag_fr, "</span>"),
+      is.na(position) & !is.na(unit_tag_fr) & !is.na(value_tidy) ~ paste0("", value_tidy,""),
+      is.na(value_tidy) ~ "No data",
+      TRUE ~ paste(value_tidy)
+    ),
     value_tidy = case_when(
       is.na(unit_tag) & !is.na(value_tidy) ~ paste0("", value_tidy, ""),
       position == "before" & !is.na(unit_tag) & !is.na(value_tidy) ~ paste0(unit_tag, "", value_tidy, ""),
-      position == "after" & !is.na(unit_tag) & !is.na(value_tidy) & unit_tag == "%" ~ paste0("", value_tidy,"<span style='font-size:2rem'>", unit_tag, "</span>"),
-      position == "after" & !is.na(unit_tag) & !is.na(value_tidy) & unit_tag == "%" ~ paste0("", value_tidy, " ", unit_tag),
+      position == "after" & !is.na(unit_tag) & !is.na(value_tidy) & unit_tag == "%" ~ paste0("", value_tidy,"<span style='font-size:1.5rem'>", unit_tag, "</span>"),
+      position == "after" & !is.na(unit_tag) & !is.na(value_tidy) & !unit_tag == "%" ~ paste0("", value_tidy,"<span style='font-size:1.5rem'> ", unit_tag, "</span>"),
       is.na(position) & !is.na(unit_tag) & !is.na(value_tidy) ~ paste0("", value_tidy,""),
-      TRUE ~ paste("No data")
+      is.na(value_tidy) ~ "No data",
+      TRUE ~ paste(value_tidy)
     )
   ) %>%
-  select(ref_area, measure, value_tidy)
+  select(ref_area, measure, value_tidy, value_tidy_fr)
+
+
 
 saveRDS(latest_total, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/gap_page/data/latest total values.RDS")
+saveRDS(latest_total, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/gap_page_fr/data/latest total values.RDS")
 
 
+# gap_filler %>%
+#   mutate(measure2 = measure) %>%
+#   separate(measure2, into = c("cat")) %>%
+#   mutate(cat = as.numeric(cat)) %>%
+#   arrange(cat) %>%
+#   mutate(measure = fct_inorder(measure)) %>%
+#   merge(dict %>% select(measure, label)) %>%
+#   arrange(measure, ref_area) %>%
+#   select(label, measure, dimension, ref_area) %>%
+#   mutate(value = " ") %>%
+#   pivot_wider(names_from = "ref_area") %>%
+#   arrange(measure) %>%
+#   openxlsx::write.xlsx(., "S:/Data/WDP/Well being database/Data Monitor/data_monitor/quality checks/gap_quality_check.xlsx")
 

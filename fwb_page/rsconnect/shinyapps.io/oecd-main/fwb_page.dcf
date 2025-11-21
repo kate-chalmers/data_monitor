@@ -1,0 +1,12 @@
+name: fwb_page
+title: fwb_page
+username: oecd-main
+account: oecd-main
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 15817768
+bundleId: 11206316
+url: https://oecd-main.shinyapps.io/fwb_page/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE

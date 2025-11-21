@@ -1,19 +1,53 @@
-@import url('https://fonts.googleapis.com/css?family=Poppins:400,500,600,700,800,900');
-@import url('https://fonts.googleapis.com/css?family=Sora:400,500,600,700,800,900');
 @import url('https://fonts.googleapis.com/css?family=Noto Sans:400,500,600,700,800,900');
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css')
 
-* {
-  font-family: 'Noto Sans', sans-serif;
-  font-size: 1.5rem;
-  color: #586179;
+html, body, 
+h1, h2, h3, h4, h5, h6,
+p, span, label, div, input, select, textarea, a, 
+button, strong, em, b, i {
+  color: #101d40b3 !important;
 }
 
-::-webkit-scrollbar {
-    display: none;
+/* Preserve your base font family */
+body, * {
+  font-family: 'Noto Sans', sans-serif !important;
+  color: #101d40b3 !important;
 }
 
-body > div.container-fluid > div:nth-child(4) > div.form-group.shiny-input-container {
+body, html {
+  overflow-x: hidden;  /* removes any horizontal scroll */
+}
+
+a, a:hover, a:visited {
+  color: #0660ef !important;
+  text-decoration: underline; 
+}
+
+.vis-text .hidden-text, .head-show + .head-hide {
+  visibility: hidden;
+  width: 120px;
+  background-color: white;
+  text-align: left;
+  border-radius: 6px;
+  z-index: 9999 !important;
+  font-size:0.85rem;
+  line-height: 0.85rem;
+  opacity: 0.9;
+  border: solid 1px lightgrey;
+  position: absolute;
+  bottom: 100%;                
+  left: 50%;
+  transform: translate(-50%, -6px);
+}
+    
+.vis-text:hover .hidden-text, .head-show:hover + .head-hide {
+  visibility: visible;
+}
+
+.vis-text {
+  position: relative;         /* ensures tooltip z-index is scoped properly */
+}
+
+body > div.container-fluid > div:nth-child(2) > div:nth-child(1) > div {
   margin-bottom: 0px;
 }
 
@@ -111,15 +145,7 @@ body > div.container-fluid > div:nth-child(4) > div.form-group.shiny-input-conta
   font-weight: bold;
 }
 
-@keyframes bounce {
-  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-15px); }
-  60% { transform: translateY(-8px); }
-}
 
-.bounce {
-  animation: bounce 1s ease-in-out 3; /* 3 bounces per trigger */
-}
 
 @keyframes bounce {
   0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
@@ -133,7 +159,7 @@ body > div.container-fluid > div:nth-child(4) > div.form-group.shiny-input-conta
   position: absolute;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);   /* center perfectly */
   padding: 6px 10px;
   border-radius: 10px;
   background: rgba(255,255,255,0.95);
@@ -141,22 +167,28 @@ body > div.container-fluid > div:nth-child(4) > div.form-group.shiny-input-conta
   font-weight: 700;
   font-size: 14px;
   color: #444;
-  display: block !important;   
-  opacity: 0;                  
-  transition: opacity .2s ease;
-  pointer-events: none;        
+  display: block;
+  opacity: 0;
+  pointer-events: none;
   z-index: 9999;
   text-align: center;
+
+  /* --- Key parts that fix the slide/jump --- */
+  will-change: transform, opacity;     /* tell browser to GPU-cache it */
+  backface-visibility: hidden;         /* eliminate subpixel jitter */
+  transform: translate3d(-50%, -50%, 0); /* force on its own render layer */
+  transition: opacity 0.4s ease;       /* smoother fade */
 }
-.bounce-label.show { opacity: 1 !important; }
 
-.card.bounce + .bounce-label,
-.card-wrapper .bounce + .bounce-label {
-  display: block !important;
+.bounce-label.show {
+  opacity: 1;
 }
 
-.bounce-label-off { display: none; }
-
+/* Do NOT ever toggle display between block/none during animation.
+   Only use .bounce-label-off for permanent removal. */
+.bounce-label-off {
+  display: none !important;
+}
 
 
 /* Let the face be a clean canvas; we'll add padding only to the top block */
@@ -209,4 +241,13 @@ body > div.container-fluid > div:nth-child(4) > div.form-group.shiny-input-conta
   .bounce-label {
     display: none !important;
   }
+}
+
+.hidden-text {
+  padding: 5px;
+  width: 120px;
+}
+
+.head-hide {
+  padding: 5px;
 }

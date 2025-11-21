@@ -6,72 +6,63 @@ ui <- fluidPage(shinyjs::useShinyjs(),
                   useShinyjs(),
                   tags$head(tags$script(src="bounce.js")),
                   tags$head(tags$script(src="modal.js")),
-                  column(12, align="right", style = "font-size:1rem",
-                         paste0("Last updated: ", last_updated, "   ")
-                  ),
-                  br(),
+                  
                   bsModal(id = "modal1",
                           title = "Download the data",
                           trigger = NULL,
                           uiOutput("defText"))
-                  
                 ),
-                br(),
-                br(),
+                
                 fluidRow(align = "center",
-                         selectInput("countrySelector",
-                                     label = "Choose a country",
-                                     choices = list(
-                                       "Averages" = average_vector,
-                                       "OECD countries" = oecd_vector,
-                                       "Non-OECD countries" = accession_vector
-                                     ),
-                                     selected = "OECD"
+                         div(style = "z-index:0;",
+                             selectInput("countrySelector",
+                                         label = "Choose a country",
+                                         choices = list(
+                                           "Averages" = average_vector,
+                                           "OECD countries" = oecd_vector,
+                                           "Partner countries" = accession_vector
+                                         ),
+                                         selected = "OECD"
+                             )
                          ),
-                         HTML("<span style='font-size:9px'>Tier is not shown when an average or a non-OECD country is selected</span>"),
+                         HTML("<span style='font-size:9px'>Tier is displayed for OECD countries only</span>"),
                          br(),
                          br(),
                          br(),
                          fluidRow(
                            column(3),
                            column(3, radioButtons("allToggle", 
-                                                  label = "Indicator view options", 
-                                                  choices = c("View only headline indicators", "View all indicators"))),
+                                                  label = "Indicator view", 
+                                                  choiceNames = list(HTML("View only <span style='text-decoration: underline dotted' class='head-show'>headline indicators</span><span class='head-hide'>Headline indicators are the 24 most representative indicators of current well-being in the database (out of 50+)</span>"),
+                                                                     "View all indicators"),
+                                                  choiceValues = c(1, 2))),
                            column(3, radioButtons("orderButton", 
-                                                  label = "Indicator order options", 
-                                                  choices = c("Arrange by dimension", "Arrange by performance"),
-                                                  selected = "Arrange by dimension")),
+                                                  label = "Indicator order", 
+                                                  choices = c("Order by dimension", "Order by performance"),
+                                                  selected = "Order by dimension")),
                            column(3)
                          )
                 ),
                 br(),
-                br(),
                 fluidRow(align = "center",
                          column(1),
                          column(10,
-                                fluidRow(
-                                  uiOutput("section_title"),
-                                  HTML("
-                         The 11 dimensions of current well-being relate to material conditions that shape people’s economic options and quality-of-life 
-                         factors that encompass how well people are (and how well they feel they are), what they know and can do, and how healthy and safe their places of living are. 
-                         Quality of life also encompasses how connected and engaged people are, and how and with whom they spend their time."),
-                                  
-                                ),
-                                br(), 
+                                # uiOutput("section_title"),
                                 fluidRow(
                                   column(3),
                                   column(6, 
                                          HTML("
-                                         Since 2010, this number of indicators have...
+                                         Number of well-being outcomes that have improved, shown no clear change or have deteriorated from 2015 to the latest available year:
                                          <br>
                                          <br>"),
                                          div(class = "card-grow", uiOutput("currentWellbeingSummary")),
                                          HTML(
                                            "<br>
-                                            <span style='color:#999999;'>●</span> not enough data
-                                            <span style='color:#CF597E;'>●</span> deteriorated  
-                                            <span style='color:goldenrod;'>●</span> no significant change 
-                                            <span style='color:#0F8554;'>●</span> improved")
+                                            <span style='color:#CF597E !important;'>●</span> deteriorated  
+                                            <span style='color:goldenrod !important;'>●</span> no clear change 
+                                            <span style='color:#0F8554 !important;'>●</span> improved
+                                            <span style='color:#999999 !important;'>●</span> not enough data to assess change
+                                           ")
                                   ),
                                   column(3)
                                 )
@@ -80,11 +71,11 @@ ui <- fluidPage(shinyjs::useShinyjs(),
                 ),
                 br(),
                 br(),
-                fluidRow(class="first-set", uiOutput("material_boxes") %>% withSpinner(color="#0dc5c1")),
+                column(12, class="first-set", uiOutput("material_boxes") %>% withSpinner(color="#0dc5c1")),
                 br(),
-                fluidRow(uiOutput("quality_boxes") %>% withSpinner(color="#0dc5c1")),
+                column(12, uiOutput("quality_boxes") %>% withSpinner(color="#0dc5c1")),
                 br(),
-                fluidRow(uiOutput("community_boxes") %>% withSpinner(color="#0dc5c1")),
+                column(12, uiOutput("community_boxes") %>% withSpinner(color="#0dc5c1")),
                 br(),
                 fluidRow(HTML("&nbsp<br><br><br>"))
                 
@@ -96,38 +87,35 @@ server <- function(input, output, session) {
   
   output$section_title <- renderUI({
     if(countryName() == "OECD Average") {
-      HTML(paste0("<b style='font-size:28px;margin-bottom:5px;'>Current well-being in the OECD</b><br>"))
+      HTML(paste0("<b style='font-size:28px;margin-bottom:5px;color:#101d40!important;'>Current well-being in the OECD</b><br>"))
     } else {
-      HTML(paste0("<b style='font-size:28px;margin-bottom:5px;'>Current well-being in ", countryName(),"</b><br>"))
+      HTML(paste0("<b style='font-size:28px;margin-bottom:5px;color:#101d40!important;'>Current well-being in ", countryName(),"</b><br>"))
     }
   })
-  
-  
+
   # Dashboard main
   observeEvent(c(input$countrySelector, input$allToggle, input$orderButton), {
     
     # input <- c()
-    # input$countrySelector <- "BEL"
-    # input$allToggle <- "View only headline indicators"
+    # input$countrySelector <- "HUN"
+    # input$allToggle <- 2
     
     avg_vals <- avg_vals_full %>% filter(startsWith(ref_area, input$countrySelector))
     ts_vals <- ts_vals_full %>% filter(startsWith(ref_area, input$countrySelector))
     
-    if (input$allToggle == "View only headline indicators") {
-      avg_vals <- avg_vals %>% filter(measure %in% headline_indicators)
-      avg_vals <- avg_vals[order(match(avg_vals$measure,unique(as.character(gap_filler$measure)))),]
-      ts_vals <- ts_vals %>% filter(measure %in% headline_indicators)
-      cwb_indicator_text_filter <- c(material_headline, quality_headline, community_headline)
-      fwb_indicator_text_filter <- c(nature_headline, econ_headline, social_headline, human_headline)
-    } else {
+    if (input$allToggle == 2) {
       avg_vals <- avg_vals[order(match(avg_vals$measure,unique(as.character(gap_filler$measure)))),]
       ts_indics <- gap_filler %>% filter(measure %in% avg_vals$measure) %>% arrange(measure) %>% pull(measure) %>% as.character()
       ts_vals <- ts_vals %>% filter(measure %in% ts_indics)
       cwb_indicator_text_filter <- gap_filler %>% filter(cat %in% 1:11) %>% pull(measure)
-      fwb_indicator_text_filter <- gap_filler %>% filter(cat %in% 12:15) %>% pull(measure)
+    } else {
+      avg_vals <- avg_vals %>% filter(measure %in% headline_indicators)
+      avg_vals <- avg_vals[order(match(avg_vals$measure,unique(as.character(gap_filler$measure)))),]
+      ts_vals <- ts_vals %>% filter(measure %in% headline_indicators)
+      cwb_indicator_text_filter <- c(material_headline, quality_headline, community_headline)
     }
     
-    if(input$orderButton == "Arrange by performance") {
+    if(input$orderButton == "Order by performance") {
       avg_vals <- avg_vals %>% arrange(arrangement) 
     }
     
@@ -137,7 +125,7 @@ server <- function(input, output, session) {
 
     mats <- avg_vals %>% filter(cat %in% c("1", "2", "3"))
     qual <- avg_vals %>% filter(cat %in% c("5", "6", "9", "10", "11"))
-    coms <- avg_vals %>% filter(cat %in% c("4", "7", "8"), !measure == "8_2")
+    coms <- avg_vals %>% filter(cat %in% c("4", "7", "8"))
     
     # CWB
     output$currentWellbeingSummary <- renderUI({ pillBox(avg_vals, cwb_indicator_text_filter) })
@@ -173,23 +161,16 @@ server <- function(input, output, session) {
         
         value_text <- paste0("<span>", value_text, "</span>")
         
-        year_text <- paste0("<span style='font-size:12px'>", point_avg[i,]$time_period, "</span><br><br>")
+        year_text <- paste0("<span style='font-size:12px'>", point_avg[i,]$latest_year, "</span><br><br>")
         
         if(!is.null(ts_avg[[avg_measure]])) {
-          plot_output <- areaPlotter(ts_avg[[avg_measure]], country_name)
+          plot_output <- areaPlotter(ts_avg[[avg_measure]])
         } else {
           plot_output <- NULL
         }
         
-        # REMOVE BEFORE LAUNCH
-        if(!is.na(point_avg[i,]$explanation)) {
-          explanation_text <- point_avg[i,]$explanation
-          explanation_text <- ""
-          output[[paste0(cluster_name, "_cards_", i)]] <- renderUI({ tagList(div(style = "margin-top:5px;margin-left:0px;margin-right:0px;margin-bottom:0px;display:inline-block;", HTML(label_text, value_text, year_text, explanation_text))) })
-        } else {
-          output[[paste0(cluster_name, "_cards_", i)]] <- renderUI({ tagList(div(style = "margin-top:5px;margin-left:0px;margin-right:0px;margin-bottom:0px;display:inline-block;", HTML(label_text, value_text, year_text))) })
-        }
-        
+        output[[paste0(cluster_name, "_cards_", i)]] <- renderUI({ tagList(div(style = "margin-top:5px;margin-left:0px;margin-right:0px;margin-bottom:0px;display:inline-block;", HTML(label_text, value_text, year_text))) })
+
         output[[paste0(cluster_name, "_sparkline_", i)]] <- renderEcharts4r({ plot_output })
         
         output[[paste0(cluster_name, "_icon_", i)]] <- renderUI({
@@ -219,57 +200,31 @@ server <- function(input, output, session) {
       
       if(cluster_name == "material") {
         
-        cluster_html <- HTML("<span class='cluster-header' style='font-size:22px'>Material conditions</span>
-                 <br>
-                 The conditions that shape people’s economic options like income and wealth, housing and work and job quality 
-                 indicators.
-                 <br>
-                 <br>")
+        cluster_html <- HTML(paste("<span class='cluster-header' style='font-size:22px;color:#101d40!important;'>Material conditions in ", countryName(),"</span>
+                              <br>
+                              The conditions that shape people’s economic options like <img src='income and wealth.png' width=0 height=0> income and wealth, <img src='housing.png' width=0 height=0> housing, and <img src='work and job quality.png' width=0 height=0> work and job quality.
+                              <br>
+                              <br>"))
         
       } else if(cluster_name == "quality") {
         
-        cluster_html <- HTML("<br><span class='cluster-header' style='font-size:22px'>Quality of life</span>
-                                   <br>
-                                   The factors that encompass how well people are (and how well they feel they are),
-                                   what they know and can do, and how healthy and safe their places of living are: health, knowledge and skills, environmental quality,
-                                   subjective well-being and safety.<br><br>")
+        cluster_html <- HTML(paste("<br>
+                              <span class='cluster-header' style='font-size:22px; color:#101d40!important;'>Quality of life in ", countryName(), "</span>
+                              <br>
+                              The conditions that reflect people's quality of life: <img src='health.png' width=0 height=0> health, <img src='knowledge and skills.png' width=0 height=0> knowledge and skills, <img src='environmental quality.png' width=0 height=0> environmental quality, <img src='subjective wellbeing.png' width=0 height=0> subjective well-being and <img src='safety.png' width=0 height=0> safety.
+                              <br>
+                              <br>"))
         
       } else if(cluster_name == "community") {
         
-        cluster_html <- HTML("<br><span class='cluster-header' style='font-size:22px'>Community relationships</span>
-                      <br>
-                      Community relationships encompasses how connected and engaged people are, and how
-                      and with whom they spend their time: work-life balance, social connections, civic engagement.<br><br>")
+        cluster_html <- HTML(paste("<br>
+                              <span class='cluster-header' style='font-size:22px; color:#101d40!important;'>Community relationships in ", countryName(),"</span>
+                              <br>
+                              The conditions that show how connected and engaged people are, and how they spend their time: <img src='worklife balance.png' width=0 height=0> work-life balance, <img src='social connections.png' width=0 height=0> social connections, and <img src='civic engagement.png' width=0 height=0> civic engagement.
+                              <br>
+                              <br>"))
         
-      } else if(cluster_name == "nature") {
-        
-        cluster_html <- HTML("<span class='cluster-header' style='font-size: 22px'>Natural capital</span>
-                        <br>
-                        Natural Capital consists of naturally occurring assets and ecosystems. 
-                        The scope of Natural Capital is vast: indicators selected for this chapter represent a small headline set of all the possible stocks, flows, and risk and resilience factors of relevance.<br><br>")
-        
-      } else if(cluster_name == "social") {
-        
-        cluster_html <- HTML("<br><span class='cluster-header' style='font-size: 22px'>Social capital</span>
-                        <br>
-                        Social Capital is about the social norms, shared values and institutional arrangements that foster co-operation among population groups.<br><br>")
-        
-      } else if(cluster_name == "human") {
-        
-        
-        cluster_html <- HTML("<br><span class='cluster-header' style='font-size: 22px'>Human capital</span>
-                        <br>
-                        Human Capital refers to the skills, competencies and health status of individuals. 
-                        Beyond technical skills, the concept of human capital has been expanded to include aspects of motivation and behaviour, as well as the physical, emotional and mental health of individuals.<br><br>")
-        
-      } else if(cluster_name == "econ") {
-        
-        
-        cluster_html <- HTML("<br><span class='cluster-header' style='font-size: 22px'>Economic capital</span>
-                        <br>
-                        Economic Capital consists of produced and financial capital. Produced capital refers to man-made tangible assets, intellectual property and inventories of final and intermediate goods. Financial capital includes financial assets.<br><br>")
-        
-      }
+      } 
       
       output[[paste0(cluster_name, "dim_desc_text")]] <- renderUI({
         fluidRow(
@@ -285,15 +240,16 @@ server <- function(input, output, session) {
           lapply(1:nrow(point_avg), function(i) {
             column(3, class="card-grow", style = paste0("margin-bottom: 10px; opacity:", point_avg[i,]$opacity, ";"),
                    div(style="z-index:0;margin-left:5px;margin-right:5px;", class = paste("card", point_avg[i,]$measure, if (i == 1 && cluster_name == "material") "bounce" else NULL),
-                       div(class = paste0(if (i == 1 && cluster_name == "material") "bounce-label" else "bounce-label-off"), "Click cards to download data"),
+                       div(class = paste0(if (i == 1 && cluster_name == "material") "bounce-label" else "bounce-label-off"), 
+                           "Click cards to download data"),
                        div(class = "card-front",
-                           div(class = "card-top", style="height:40%;z-index:2;",
+                           div(class = "card-top", style="height:40%;z-index:1;",
                                fluidRow(align = "center",
                                         uiOutput(paste0(cluster_name, "_icon_", i)),
                                         uiOutput(paste0(cluster_name, "_cards_", i))
                                )
                            ),
-                           div(class = "sparkline-wrap", style="height:60%;z-index:1;",
+                           div(class = "sparkline-wrap", style="height:60%;z-index:2;",
                                    echarts4rOutput(paste0(cluster_name, "_sparkline_", i), height="100%")
                            )
                        )
@@ -319,6 +275,10 @@ server <- function(input, output, session) {
     
     if(country_name %in% the_thes) {
       country_name <- paste0("the ", country_name)
+    }
+    
+    if(country_name == "OECD Average") {
+      country_name <- "the OECD"
     }
     
     return(country_name) 

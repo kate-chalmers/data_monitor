@@ -51,24 +51,7 @@ average_vector <- country_name_vector[1]
 oecd_vector <- country_name_vector[2:(length(oecd_countries) +1)]
 accession_vector <- country_name_vector[(length(oecd_countries) + 2):length(country_name_vector)]
 
-
-clusters <- readxl::read_excel("./data/dictionary.xlsx") %>%
-  select(measure) %>%
-  mutate(measure2 = measure) %>%
-  separate(measure2, into = c("cat")) %>%
-  mutate(
-    cluster = case_when(
-      cat %in% c("1", "2", "3") ~ "mats",
-      cat %in% c("5", "6", "9", "10", "11") ~ "qualts",
-      cat %in% c("4", "7", "8", "14") ~ "coms",
-      cat == "12" ~ "nat",
-      cat == "13" ~ "human",
-      # cat == "14" ~ "social",
-      cat == "15" ~ "econ"
-    ),
-    cat = as.numeric(cat)
-  ) %>%
-  arrange(cat, measure)
+clusters <- readRDS("./data/clusters_df.RDS")
 
 dim_colors <- data.frame(
   cat = as.character(1:15),
@@ -98,12 +81,9 @@ social_cluster <- clusters %>% filter(cluster == "social") %>% pull(measure)
 econ_cluster <- clusters %>% filter(cluster == "econ") %>% pull(measure)
 
 full_dat <- readRDS("./data/full inequalities data.RDS") %>%
-  filter(!grepl("11_3_", measure),
-         !measure %in% c("10_2", "11_1_DEP", "14_3_DEP", "14_7_DEP", "7_1_DEP",
-                         "4_4_DEP", "2_9_DEP", "7_3_DEP",
-                         "8_1", "4_1", "7_2", "2_6", "2_5", "5_2_DEP", "4_2", "4_3", "8_2")) %>%
   arrange(ref_area, measure, dimension, time_period) %>%
   mutate(time_period = as.numeric(time_period))
+
 
 latest_idx <- full_dat |>
   group_by(ref_area, measure, dimension) |>
@@ -111,7 +91,7 @@ latest_idx <- full_dat |>
   mutate(time_period = ifelse(gap_value == "No Data", NA, time_period)) |>
   ungroup()
 
-latest_tot <- readRDS("./data/latest total values.RDS")
+latest_tot <- readRDS("./data/latest total values.RDS") %>% select(-value_tidy_fr)
 
 inequalitySeriesPlotter <- inequalitySeriesPlotter_fun
 gapPlotter              <- gapPlotter_fun

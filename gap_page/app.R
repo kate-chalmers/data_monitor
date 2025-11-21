@@ -12,11 +12,6 @@ ui <- fluidPage(shinyjs::useShinyjs(),
                 fluidRow(align="center",
                          column(2),
                          column(8, align = "center",
-                                br(),
-                                HTML("<img src='tutorial.svg' height=300 width = 600>"),
-                                br(),
-                                br(),
-                                br(),
                                 selectInput("countrySelector",
                                             label = "Choose a country",
                                             choices = list(
@@ -156,31 +151,31 @@ server <- function(input, output, session) {
                  uiOutput(paste0(dim_label, "_dimension_title")) %>% withSpinner(color="#0dc5c1"),
                  br(),
                  br()
-                 ),
+          ),
           column(2)
         ),
-          fluidRow(
-            column(2),
-            column(8, align="center",
-                   HTML("Number of well-being outcomes that have improved, shown no clear change or have deteriorated from 2015 to the latest available year:"),
-                   br(),
-                   fluidRow(
-                     column(4, style = "margin-top: 20px",
-                            uiOutput(paste0(dim_label, "_summary_F")),
-                            uiOutput(paste0(dim_label, "_summary_M"))
-                     ),
-                     column(4,
-                            uiOutput(paste0(dim_label, "_summary_YOUNG")),
-                            uiOutput(paste0(dim_label, "_summary_MID")),
-                            uiOutput(paste0(dim_label, "_summary_OLD"))
-                     ),
-                     column(4, style = "margin-top: 20px",
-                            uiOutput(paste0(dim_label, "_summary_ISCED11_2_3")),
-                            uiOutput(paste0(dim_label, "_summary_ISCED11_5T8")))
-                   )
-            ),
-            column(2)
-          )
+        fluidRow(
+          column(2),
+          column(8, align="center",
+                 HTML("Number of well-being outcomes that have improved, shown no clear change or have deteriorated from 2015 to the latest available year:"),
+                 br(),
+                 fluidRow(
+                   column(4, style = "margin-top: 20px",
+                          uiOutput(paste0(dim_label, "_summary_F")),
+                          uiOutput(paste0(dim_label, "_summary_M"))
+                   ),
+                   column(4,
+                          uiOutput(paste0(dim_label, "_summary_YOUNG")),
+                          uiOutput(paste0(dim_label, "_summary_MID")),
+                          uiOutput(paste0(dim_label, "_summary_OLD"))
+                   ),
+                   column(4, style = "margin-top: 20px",
+                          uiOutput(paste0(dim_label, "_summary_ISCED11_2_3")),
+                          uiOutput(paste0(dim_label, "_summary_ISCED11_5T8")))
+                 )
+          ),
+          column(2)
+        )
 
       ),
       fluidRow(align = "center", style="margin-top:0px;",
@@ -203,117 +198,119 @@ server <- function(input, output, session) {
 
         opacity_val <- dat_country() %>% filter(measure == indicator_list[i]) %>% select(dimension, opacity) %>% distinct()
 
-          column(12, class = "folder-row", align = "center",
-                 style = "margin-bottom:10px; border-radius: 25px; border:solid 1.5px lightgrey; padding: 0px !important; width: 95%",
-                 fluidRow(style = paste0("background:", dim_color, "; margin: 0px; border-radius: 23px 23px 0px 0px;"),
-                          column(1, class="card-grow", align="center", uiOutput(paste0(dim_label, "_dimension_", i))),
-                          column(9, style="margin-top:10px", align = "left", uiOutput(paste0(dim_label, "_label_text_", i))),
-                          column(2, style = "margin-top:10px", align = "right", uiOutput(paste0(dim_label, "_population_value_", i)))
-                 ),
-                 fluidRow(align= "center", class = "cards-row",
-                          column(4, class = "gender_dim",
-                                 div(class = paste("card-front card-grow", indicator_list[i]),
-                                     style = paste0("opacity:", opacity_val %>% filter(dimension == "F") %>% pull(opacity), "!important;"),
+        column(12, class = "folder-row", align = "center",
+               style = "margin-bottom:10px; border-radius: 25px; border:solid 1.5px lightgrey; padding: 0px !important; width: 95%",
+               fluidRow(style = paste0("background:", dim_color, "; margin: 0px; border-radius: 23px 23px 0px 0px;"),
+                        column(1, class="card-grow", align="center", uiOutput(paste0(dim_label, "_dimension_", i))),
+                        column(9, style="margin-top:10px", align = "left", uiOutput(paste0(dim_label, "_label_text_", i))),
+                        column(2, style = "margin-top:10px", align = "right", uiOutput(paste0(dim_label, "_population_value_", i)))
+               ),
+               fluidRow(align= "center", class = "cards-row",
+                        column(4, class = "gender_dim",
 
-                                     fluidRow(style = "height: 40%; z-index:1;",
-                                              uiOutput(paste0(dim_label, "_women_gap_", i), height=25),
-                                              uiOutput(paste0(dim_label, "_icon_", i, "_F")),
-                                              uiOutput(paste0(dim_label, "_text_", i, "_F"))
-                                     ),
-                                     fluidRow(style = "z-index:2",
-                                              echarts4rOutput(paste0(dim_label, "_women_ts_", i), height="100%")
-                                     )
-                                 ),
-                                 div(class = paste("card-front card-grow", indicator_list[i]),
-                                     style = paste0("opacity:", opacity_val %>% filter(dimension == "M") %>% pull(opacity), "!important;"),
+                               div(class = paste("card-front card-grow", indicator_list[i]),
+                                   style = paste0("opacity:", opacity_val %>% filter(dimension == "F") %>% pull(opacity), "!important;"),
 
-                                     fluidRow(style = "height: 40%; z-index:1;",
-                                              uiOutput(paste0(dim_label, "_men_gap_", i), height=25),
-                                              uiOutput(paste0(dim_label, "_icon_", i, "_M")),
-                                              uiOutput(paste0(dim_label, "_text_", i, "_M"))
-                                     ),
-                                     fluidRow(style = "z-index:2",
-                                              echarts4rOutput(paste0(dim_label, "_men_ts_", i), height="100%")
-                                     )
-                                 )
-                          ),
-                          column(4, class = paste0(indicator_list[i], " age_dim"),
-                                 div(class = paste("card-front card-grow", indicator_list[i]),
-                                     style = paste0("opacity:", opacity_val %>% filter(dimension == "YOUNG") %>% pull(opacity), "!important;"),
+                                   fluidRow(style = "height: 40%; z-index:1;",
+                                            uiOutput(paste0(dim_label, "_women_gap_", i), height=25),
+                                            uiOutput(paste0(dim_label, "_icon_", i, "_F")),
+                                            uiOutput(paste0(dim_label, "_text_", i, "_F"))
+                                   ),
+                                   fluidRow(style = "z-index:2",
+                                            echarts4rOutput(paste0(dim_label, "_women_ts_", i), height="100%")
+                                   )
 
-                                     fluidRow(style = "height: 40%; z-index:1;",
-                                              uiOutput(paste0(dim_label, "_young_gap_", i), height = 25),
-                                              uiOutput(paste0(dim_label, "_icon_", i, "_YOUNG")),
-                                              uiOutput(paste0(dim_label, "_text_", i, "_YOUNG"))
-                                     ),
-                                     fluidRow(style = "z-index:2",
-                                              echarts4rOutput(paste0(dim_label, "_young_ts_", i), height="100%"))
-                                 ),
-                                 div(class = paste("card-front card-grow", indicator_list[i]),
-                                     style = paste0("opacity:", opacity_val %>% filter(dimension == "MID") %>% pull(opacity), "!important;"),
+                               ),
+                               div(class = paste("card-front card-grow", indicator_list[i]),
+                                   style = paste0("opacity:", opacity_val %>% filter(dimension == "M") %>% pull(opacity), "!important;"),
 
-                                     fluidRow(style = "height: 40%; z-index:1;",
-                                              uiOutput(paste0(dim_label, "_mid_gap_", i), height = 25),
-                                              uiOutput(paste0(dim_label, "_icon_", i, "_MID")),
-                                              uiOutput(paste0(dim_label, "_text_", i, "_MID"))
-                                     ),
-                                     fluidRow(style = "z-index:2",
-                                              echarts4rOutput(paste0(dim_label, "_mid_ts_", i), height="100%"))
-                                 ),
-                                 div(class = paste("card-front card-grow", indicator_list[i]),
-                                     style = paste0("opacity:", opacity_val %>% filter(dimension == "OLD") %>% pull(opacity), "!important;"),
+                                   fluidRow(style = "height: 40%; z-index:1;",
+                                            uiOutput(paste0(dim_label, "_men_gap_", i), height=25),
+                                            uiOutput(paste0(dim_label, "_icon_", i, "_M")),
+                                            uiOutput(paste0(dim_label, "_text_", i, "_M"))
+                                   ),
+                                   fluidRow(class = "chart-row", style = "z-index:2;",
+                                            echarts4rOutput(paste0(dim_label, "_men_ts_", i), height="100%")
+                                   )
+                               )
+                        ),
+                        column(4, class = paste0(indicator_list[i], " age_dim"),
+                               div(class = paste("card-front card-grow", indicator_list[i]),
+                                   style = paste0("opacity:", opacity_val %>% filter(dimension == "YOUNG") %>% pull(opacity), "!important;"),
 
-                                     fluidRow(style = "height: 40%; z-index:1;",
-                                              uiOutput(paste0(dim_label, "_old_gap_", i), height = 25),
-                                              uiOutput(paste0(dim_label, "_icon_", i, "_OLD")),
-                                              uiOutput(paste0(dim_label, "_text_", i, "_OLD"))
-                                     ),
-                                     fluidRow(style = "z-index:2",
-                                              echarts4rOutput(paste0(dim_label, "_old_ts_", i), height="100%"))
-                                 )
-                          ),
-                          column(4, class = paste0(indicator_list[i], " educ_dim"),
+                                   fluidRow(style = "height: 40%; z-index:1;",
+                                            uiOutput(paste0(dim_label, "_young_gap_", i), height = 25),
+                                            uiOutput(paste0(dim_label, "_icon_", i, "_YOUNG")),
+                                            uiOutput(paste0(dim_label, "_text_", i, "_YOUNG"))
+                                   ),
+                                   fluidRow(style = "z-index:2",
+                                            echarts4rOutput(paste0(dim_label, "_young_ts_", i), height="100%"))
+                               ),
+                               div(class = paste("card-front card-grow", indicator_list[i]),
+                                   style = paste0("opacity:", opacity_val %>% filter(dimension == "MID") %>% pull(opacity), "!important;"),
 
-                                 div(class = paste("card-front card-grow", indicator_list[i]),
-                                     style = paste0("opacity:", opacity_val %>% filter(dimension == "ISCED11_2_3") %>% pull(opacity), "!important;"),
+                                   fluidRow(style = "height: 40%; z-index:1;",
+                                            uiOutput(paste0(dim_label, "_mid_gap_", i), height = 25),
+                                            uiOutput(paste0(dim_label, "_icon_", i, "_MID")),
+                                            uiOutput(paste0(dim_label, "_text_", i, "_MID"))
+                                   ),
+                                   fluidRow(style = "z-index:2",
+                                            echarts4rOutput(paste0(dim_label, "_mid_ts_", i), height="100%"))
+                               ),
+                               div(class = paste("card-front card-grow", indicator_list[i]),
+                                   style = paste0("opacity:", opacity_val %>% filter(dimension == "OLD") %>% pull(opacity), "!important;"),
 
-                                     fluidRow(style = "height: 40%; z-index:1;",
-                                              uiOutput(paste0(dim_label, "_secondary_gap_", i), height = 25),
-                                              uiOutput(paste0(dim_label, "_icon_", i, "_ISCED11_2_3")),
-                                              uiOutput(paste0(dim_label, "_text_", i, "_ISCED11_2_3"))
-                                     ),
-                                     fluidRow(style = "z-index:2",
-                                              echarts4rOutput(paste0(dim_label, "_secondary_ts_", i), height="100%")
-                                     )
-                                 ),
-                                 div(class = paste("card-front card-grow", indicator_list[i]),
-                                     style = paste0("opacity:", opacity_val %>% filter(dimension == "ISCED11_5T8") %>% pull(opacity), "!important;"),
+                                   fluidRow(style = "height: 40%; z-index:1;",
+                                            uiOutput(paste0(dim_label, "_old_gap_", i), height = 25),
+                                            uiOutput(paste0(dim_label, "_icon_", i, "_OLD")),
+                                            uiOutput(paste0(dim_label, "_text_", i, "_OLD"))
+                                   ),
+                                   fluidRow(style = "z-index:2",
+                                            echarts4rOutput(paste0(dim_label, "_old_ts_", i), height="100%"))
+                               )
+                        ),
+                        column(4, class = paste0(indicator_list[i], " educ_dim"),
 
-                                     fluidRow(style = "height: 40%; z-index:1;",
-                                              uiOutput(paste0(dim_label, "_tertiary_gap_", i), height = 25),
-                                              uiOutput(paste0(dim_label, "_icon_", i, "_ISCED11_5T8")),
-                                              uiOutput(paste0(dim_label, "_text_", i, "_ISCED11_5T8"))
-                                     ),
-                                     fluidRow(style = "z-index:2",
-                                              echarts4rOutput(paste0(dim_label, "_tertiary_ts_", i), height="100%")
-                                     )
-                                 )
-                          )
-                 ),
-                 fluidRow(style = "height:160px;", align = "center",
-                          column(2),
-                          column(8,
-                                 HTML("<b>Distance from population average</b>"),
-                                 br(),
-                                 br(),
-                                 echarts4rOutput(paste0(dim_label, "_age_pop_", i), height = 50),
-                                 column(4, align = "right", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>← Group is worse off</span>")),
-                                 column(4, align = "center", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;margin-top:5px'>", break_wrap("Group outcomes are similar to the population average", 20), "</span>")),
-                                 column(4, align = "left", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>Group is better off →</span>"))
-                          ),
-                          column(2)
-                 )
-          )
+                               div(class = paste("card-front card-grow", indicator_list[i]),
+                                   style = paste0("opacity:", opacity_val %>% filter(dimension == "ISCED11_2_3") %>% pull(opacity), "!important;"),
+
+                                   fluidRow(style = "height: 40%; z-index:1;",
+                                            uiOutput(paste0(dim_label, "_secondary_gap_", i), height = 25),
+                                            uiOutput(paste0(dim_label, "_icon_", i, "_ISCED11_2_3")),
+                                            uiOutput(paste0(dim_label, "_text_", i, "_ISCED11_2_3"))
+                                   ),
+                                   fluidRow(style = "z-index:2",
+                                            echarts4rOutput(paste0(dim_label, "_secondary_ts_", i), height="100%")
+                                   )
+                               ),
+                               div(class = paste("card-front card-grow", indicator_list[i]),
+                                   style = paste0("opacity:", opacity_val %>% filter(dimension == "ISCED11_5T8") %>% pull(opacity), "!important;"),
+
+                                   fluidRow(style = "height: 40%; z-index:1;",
+                                            uiOutput(paste0(dim_label, "_tertiary_gap_", i), height = 25),
+                                            uiOutput(paste0(dim_label, "_icon_", i, "_ISCED11_5T8")),
+                                            uiOutput(paste0(dim_label, "_text_", i, "_ISCED11_5T8"))
+                                   ),
+                                   fluidRow(style = "z-index:2",
+                                            echarts4rOutput(paste0(dim_label, "_tertiary_ts_", i), height="100%")
+                                   )
+                               )
+                        )
+               ),
+               fluidRow(style = "height:160px;", align = "center",
+                        column(2),
+                        column(8,
+                               HTML("<b>Distance from population average</b>"),
+                               br(),
+                               br(),
+                               echarts4rOutput(paste0(dim_label, "_age_pop_", i), height = 50),
+                               column(4, align = "right", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>← Group is worse off</span>")),
+                               column(4, align = "center", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;margin-top:5px'>", break_wrap("Group outcomes are similar to the population average", 20), "</span>")),
+                               column(4, align = "left", HTML("<span style='font-size:1rem;line-height:1rem;display:inline-block;'>Group is better off →</span>"))
+                        ),
+                        column(2)
+               )
+        )
 
       })
     )
@@ -415,7 +412,7 @@ server <- function(input, output, session) {
       indicator_names <- plot_df_raw %>%
         group_by(perf_val_name) %>%
         summarize(
-          label_text = paste0( "<img src='", image,"' height=10 width=10>", label, collapse = "<br>")
+          label_text = paste0( "<img src='", image,"' height=10 width=10> ", label, collapse = "<br>")
         )
 
       plot_df <- plot_df_raw %>%
@@ -567,12 +564,10 @@ server <- function(input, output, session) {
         img_cap <- td$image_caption[1]
         dim_name <-str_remove_all(img, "\\.png") %>% tools::toTitleCase(.)
         dim_color <- td$dim_color[1]
-        # HTML(paste0("<img style='margin-top:10px;margin-left:5%;' src='", img,"' height=60 width=60>"))
-        #
 
         HTML(paste0("<a class = 'dim-icon-hover'>
                       <img style='margin-top:10px;margin-bottom:10px;margin-left:5%;' src='", img,"' height=60 width=60>
-                       <span style='overflow:visible !important;z-index:0' class='dim-icon-text'>", img_cap, "</span>
+                       <span style='overflow:visible !important;z-index:0;' class='dim-icon-text'>", img_cap, "</span>
                     </a>
                     "))
       })
@@ -585,7 +580,28 @@ server <- function(input, output, session) {
         if (!nrow(td)) return(div())
         latest_year_text <- td %>% filter(!is.na(latest_year)) %>% pull(latest_year) %>% unique()
         earliest_year_text <- td %>% filter(!is.na(earliest_year)) %>% pull(earliest_year) %>% unique()
-        year_text <- ifelse(length(latest_year_text) == 0, " ", paste0(earliest_year_text, "-", latest_year_text))
+
+        ly <- if (exists("latest_year_text") && length(latest_year_text) > 0) latest_year_text else numeric(0)
+        ey <- if (exists("earliest_year_text") && length(earliest_year_text) > 0) earliest_year_text else numeric(0)
+
+        # Compute year_text
+        if (length(ly) == 0 && length(ey) == 0) {
+          year_text <- ""
+        } else if (length(ly) == 0) {
+          year_text <- as.character(min(ey))
+        } else if (length(ey) == 0) {
+          year_text <- as.character(max(ly))
+        } else {
+          earliest <- min(ey)
+          latest   <- max(ly)
+          year_text <- if (earliest == latest) as.character(latest) else paste0(earliest, "-", latest)
+        }
+
+        # Special manual override
+        if (measure_name == "2_5") {
+          year_text <- "2015-2016"
+        }
+
         HTML(paste0("<b>", unique(td$label), "</b>
                       <br>
                       <span style='display:inline-block'>", unique(td$unit), "<br>

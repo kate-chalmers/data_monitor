@@ -1,8 +1,8 @@
 
 timeSeriesAverage <- function(full_df, dimension_name) {
   
-  # dimension_name <- c("F", "M")
-  # full_df <- full_dat
+  # dimension_name <- group_list
+  # full_df <- tidy_dat
   
   full_df <- full_df %>% filter(ref_area %in% oecd_countries)
   
@@ -187,7 +187,7 @@ twoPointAverage <- function(full_df, dimension_name) {
   
   # List measures available in dimensions specified
   measures_avail <- prepped_df %>% distinct(measure) %>% pull()
-  
+
   cleaned_df <- c()
   for(measure_name in measures_avail) {
     

@@ -92,7 +92,7 @@ indicatorText <- function(avg_df, cluster_df) {
     pull(cluster_text) 
   
   cluster_text <- fluidRow(
-    HTML("<span style='font-size:14px; display:inline-block;'>Since 2010 or the earliest available year, <br><br>"), 
+    HTML("<span style='font-size:14px; display:inline-block;'>Since 2015 or the earliest available year, <br><br>"), 
     div(
              column(3, HTML(cluster_text[1])),
              column(3, HTML(cluster_text[2])),
@@ -110,13 +110,13 @@ indicatorText <- function(avg_df, cluster_df) {
 
 pillBox <- function(avg_df, cluster_filter) {
   
-  # avg_df <- avg_vals %>% filter(ref_area == "DNK")
-  # cluster_filter <- cwb_indicator_text_filter
+  # avg_df <- avg_vals %>% filter(ref_area == "BEL")
+  # cluster_filter <- material_headline
   
   priority <- c("Improving", "No significant change", "Deteriorating", "Not enough data")
   
-  plot_df <- avg_df %>% 
-    filter(measure %in% cluster_filter) %>% 
+  plot_df_raw <- avg_df %>% 
+    filter(measure %in% cluster_filter) %>%
     mutate(
       perf_val = ifelse(is.na(perf_val), "#999999", perf_val),
       perf_val_name = case_when(
@@ -131,31 +131,43 @@ pillBox <- function(avg_df, cluster_filter) {
         perf_val == "#CF597E"   ~ "#f5e1e6",
         TRUE                    ~ "#ececec"
       )
-    ) %>%
+    ) 
+  
+  indicator_names <- plot_df_raw %>% 
+    group_by(perf_val_name) %>%
+    summarize(
+      label_text = paste0(
+        "<img src='", image,"' height=10 width=10>",
+        label_name, collapse = "<br>")
+    )
+  
+  plot_df <- plot_df_raw %>%
     count(perf_val, perf_val_light, perf_val_name) %>%
     mutate(
       n   = ifelse(is.na(n), 0, n),
       pct = 100 * n / sum(n)
     ) %>%
+    merge(indicator_names, by = "perf_val_name") %>%
     arrange(match(perf_val_name, rev(priority))) %>%
     mutate(
       first_seg = row_number() == 1L,
       last_seg  = row_number() == n(),
-      standard_style = "display:inline-block;height:30px;line-height:25px;"
+      standard_style = "display:inline-block;position:relative;overflow:visible;height:30px;line-height:25px;",
+      hover_text = paste0("<span class='hidden-text'>", label_text, "</span>")
     ) %>%
     mutate(
       html = case_when(
-        first_seg ~ paste0("<span style='", standard_style,
+        first_seg ~ paste0("<span class = 'vis-text' style='", standard_style,
                            "border: solid 1.5px ", perf_val, ";border-right:0px;",
                            "border-radius: 25px 0px 0px 25px; width:", pct, "%;",
-                           "background:", perf_val_light,";'><b>", n, "</b></span>"),
-        last_seg ~ paste0("<span style='", standard_style,
+                           "background:", perf_val_light,";'><b>", n, "</b>", hover_text,"</span>"),
+        last_seg ~ paste0("<span class = 'vis-text' style='", standard_style,
                           "border: solid 1.5px ", perf_val, ";border-left:0px;",
                           "border-radius: 0px 25px 25px 0px; width:", pct, "%;",
-                          "background:", perf_val_light,";'><b>", n, "</b></span>"),
-        TRUE ~ paste0("<span style='", standard_style,
+                          "background:", perf_val_light,";'><b>", n, "</b>", hover_text,"</span>"),
+        TRUE ~ paste0("<span class = 'vis-text' style='", standard_style,
                       "border: solid 1.5px ", perf_val, ";border-right:0px;border-left:0px;",
-                      "width:", pct, "%;background:", perf_val_light,";'><b>", n, "</b></span>")
+                      "width:", pct, "%;background:", perf_val_light,";'><b>", n, "</b>", hover_text,"</span>")
       )
     )
   

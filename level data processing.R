@@ -2,10 +2,11 @@ source("./global_processing.R")
 
 # Pull break treated data and clean for analysis
 tidy_dat <- readRDS("S:/Data/WDP/Well being database/Automated database/output/break_treated_final_dataset.RDS") %>%
-  filter(dimension == "_T", time_period >= 2010, !measure %in% dropped_indics) %>%
+  rbind(oecd_avg_dat) %>%
+  filter(dimension == "_T", time_period >= 2015, !measure %in% dropped_indics) %>%
   select(ref_area, time_period, measure, dimension, unit_measure, obs_value) %>%
   left_join(dict %>% select(measure, threshold, direction), by=c("measure")) %>%
-  distinct()
+  distinct() 
 
 # Define complete dataset to create "no data" cards and set order of indicators
 # according to dimension
@@ -20,11 +21,11 @@ gap_filler <- tidy_dat %>%
   mutate(measure = fct_infreq(measure)) %>%
   merge(., data.frame(ref_area = c(all_countries, "OECD")))
 
-
 # Card data point calculations --------------------------------------------
 
 # Calculate latest and earliest values for OECD average 
 avg_vals <- twoPointAverage(tidy_dat, "_T") %>% 
+  filter(!measure %in% oecd_avg_measures) %>%
   select(-label) %>%
   mutate(ref_area = ifelse(grepl("OECD", ref_area), "OECD", ref_area))
 
@@ -56,15 +57,21 @@ tiers_dat <- tidy_dat %>%
            ),
          rank_max = max(rank)
   ) %>%
-  ungroup() %>%
+  ungroup() %>% 
   mutate(share = rank/rank_max,
          tiers = case_when(
            share < 0.33 ~ 3,
            share > 0.66 ~ 1,
            TRUE ~ 2
+         ),
+         # Exposure to extreme temps has many 0s which unfairly skew the ranking
+         # Countries with 0 are not automatically tier 1
+         tiers = case_when(
+           measure == "9_3" & obs_value == 0 ~ 1,
+           TRUE ~ tiers
          )
   ) %>%
-  ungroup() %>%
+  ungroup() %>% 
   select(measure, ref_area, tiers) %>%
   distinct() %>%
   complete(measure = unique(tidy_dat$measure)) %>%
@@ -79,40 +86,35 @@ tiers_dat <- tidy_dat %>%
   )) %>%
   drop_na(icon)
 
-# Calculate cumulative change and evaluate it wrt to the threshold
-cum_change_dat <- avg_vals %>%
+# Calculate point change and evaluate it wrt to the threshold
+point_change_dat <- avg_vals %>%
   select(-time_period) %>%
-  # This preserves the latest year 
-  # group_by(ref_area, measure) %>%
-  # mutate(time_period = max(time_period)) %>%
-  # ungroup() %>%
   pivot_wider(names_from = "label", values_from = "obs_value") %>%
-  mutate(cum_change = latest - earliest,
+  mutate(point_change = latest - earliest,
          perf_val = case_when(
-           direction == "positive" & cum_change > threshold ~ "good",
-           direction == "negative" & cum_change < threshold * -1 ~ "good",
-           direction == "positive" & cum_change < threshold * -1 ~ "bad",
-           direction == "negative" & cum_change > threshold ~ "bad",
-           direction == "positive" & (!cum_change > threshold | !cum_change < threshold * -1) ~ "neutral",
-           direction == "negative" & (!cum_change < threshold * -1 | !cum_change > threshold ) ~ "neutral"
+           direction == "positive" & point_change > threshold ~ "good",
+           direction == "negative" & point_change < threshold * -1 ~ "good",
+           direction == "positive" & point_change < threshold * -1 ~ "bad",
+           direction == "negative" & point_change > threshold ~ "bad",
+           direction == "positive" & (!point_change > threshold | !point_change < threshold * -1) ~ "neutral",
+           direction == "negative" & (!point_change < threshold * -1 | !point_change > threshold ) ~ "neutral"
          ),
          perf_val = case_when(
            perf_val == "good" ~ "#0F8554",
            perf_val == "neutral" ~ "goldenrod",
            perf_val == "bad" ~ "#CF597E",
            TRUE ~ "#999999"
-         ),
-         # REMOVE BEFORE LAUNCH!
-         explanation = case_when(
-           is.na(cum_change) & !is.na(threshold) ~ paste0("Not enough data to calculate cumulative change"),
-           is.na(cum_change) & is.na(threshold) ~ "Not enough data and no threshold",
-           !is.na(cum_change) & is.na(threshold) ~ "Threshold could be found"
-         ),
-         # REMOVE BEFORE LAUNCH!
-         explanation = ifelse(!is.na(explanation), paste0("<span style='font-size:8px'>", explanation, "</span>"), explanation)  
+         )
          ) %>%
   select(-latest) %>%
   merge(gap_filler, by = c("ref_area", "measure", "unit_measure"), all = T) %>%
+  merge(skills_sig, by = c("ref_area", "measure"), all = T) %>% 
+  mutate(
+    perf_val = case_when(
+      sig == "0" & !is.na(perf_val) ~ "goldenrod",
+      TRUE ~ perf_val)
+    ) %>%
+  select(-sig) %>%
   mutate(
     perf_val = case_when(
       is.na(perf_val) ~ "#999999",
@@ -131,14 +133,15 @@ latest_dat <- avg_vals %>%
   filter(label == "latest") %>%
   select(measure, ref_area, latest_year = time_period, latest = obs_value) 
 
-avg_vals <- cum_change_dat %>%
+
+avg_vals <- point_change_dat %>%
   # Create cat group for easier defining of well-being dimensions
   mutate(measure2 = measure) %>%
   separate(measure2, into="cat") %>%
   distinct() %>% 
   left_join(tiers_dat %>% select(-tiers), by = c("measure", "ref_area")) %>%
   left_join(latest_dat, by = c("measure", "ref_area")) %>% 
-  merge(dict %>% select(measure, label_name = label, unit_tag, round_val, position), by = "measure") %>%
+  merge(dict %>% select(measure, label_name = label, label_name_fr = label_fr, unit_tag,  unit_tag_fr, round_val, position), by = "measure") %>%
   ungroup() %>%
   mutate(
     # Set dimension icons for card
@@ -161,6 +164,23 @@ avg_vals <- cum_change_dat %>%
     ),
     image_caption = str_remove_all(image, "\\.png"),
     image_caption = tools::toTitleCase(image_caption),
+    image_caption_fr = case_when(
+      cat == "1" ~ "Revenu et patrimoine",
+      cat == "2" ~ "Travail et qualité de l'emploi",
+      cat == "3" ~ "Logement",
+      cat == "4" ~ "Équilibre travail-vie privée",
+      cat == "5" ~ "Santé",
+      cat == "6" ~ "Connaissances et compétences",
+      cat == "7" ~ "Liens sociaux",
+      cat == "8" ~ "Sécurité",
+      cat == "9" ~ "Qualité environnementale",
+      cat == "10" ~ "Engagement civique",
+      cat == "11" ~ "Bien-être subjectif",
+      cat == "12" ~ "Capital naturel",
+      cat == "13" ~ "Capital humain",
+      cat == "14" ~ "Capital social",
+      cat == "15" ~ "Capital économique"
+    ),
     # Set performance arrangement
     arrangement = case_when(
       icon == "1-circle-fill.png" & perf_val == "#0F8554" ~ 1,
@@ -178,7 +198,7 @@ avg_vals <- cum_change_dat %>%
       icon == "three-dots.png" & perf_val == "#0F8554" ~ 13,
       icon == "three-dots.png" & perf_val == "goldenrod" ~ 14,
       icon == "three-dots.png" & perf_val == "#CF597E" ~ 15,
-      icon == "three-dots.png" & perf_val == "#999999" ~ 16,
+      icon == "three-dots.png" & perf_val == "#999999" & !is.na(latest) ~ 16,
       TRUE ~ 17
     ),
     # Set OECD arrangement
@@ -204,6 +224,7 @@ avg_vals <- cum_change_dat %>%
 # Time series calculation -------------------------------------------------
 
 ts_vals <- timeSeriesAverage(tidy_dat, "_T") %>%
+  filter(!measure %in% oecd_avg_measures) %>%
   mutate(ref_area = ifelse(grepl("OECD", ref_area), "OECD", ref_area)) %>%
   rbind(tidy_dat)
 
@@ -211,14 +232,14 @@ ts_vals <- ts_vals %>%
   mutate(measure2 = measure) %>%
   separate(measure2, into="cat") %>%
   distinct() %>%
-  merge(cum_change_dat %>% select(ref_area, measure, perf_val), by = c("ref_area", "measure")) %>%
+  merge(point_change_dat %>% select(ref_area, measure, perf_val), by = c("ref_area", "measure")) %>%
   left_join(dict %>% select(measure, round_val, unit_tag_clean, position), by = "measure") %>%
   mutate(
     obs_value_tidy = prettyNum(round(obs_value, round_val), big.mark = " "),
     obs_value_tidy = case_when(
       position == "after" & unit_tag_clean == "%" ~ paste0(obs_value_tidy, "%"),
       position == "before" ~ paste0("USD ", obs_value_tidy),
-      position == "after" & unit_tag_clean == "%" ~ paste0(obs_value_tidy, " ", unit_tag_clean),
+      position == "after" & !unit_tag_clean == "%" ~ paste0(obs_value_tidy, " ", unit_tag_clean),
     )
   ) %>%
   select(-unit_measure) 
@@ -226,9 +247,15 @@ ts_vals <- ts_vals %>%
 
 saveRDS(ts_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page/data/time series.RDS")
 saveRDS(ts_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page/data/time series.RDS")
+saveRDS(ts_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page_fr/data/time series.RDS")
+saveRDS(ts_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page_fr/data/time series.RDS")
+
 
 saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page/data/latest point data.RDS")
 saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page/data/latest point data.RDS")
+saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page_fr/data/latest point data.RDS")
+saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page_fr/data/latest point data.RDS")
+
 
 gap_filler <- avg_vals %>%
   distinct(measure) %>%
@@ -242,3 +269,6 @@ gap_filler <- avg_vals %>%
 
 saveRDS(gap_filler, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page/data/gap filler.RDS")
 saveRDS(gap_filler, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page/data/gap filler.RDS")
+saveRDS(gap_filler, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page_fr/data/gap filler.RDS")
+saveRDS(gap_filler, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page_fr/data/gap filler.RDS")
+
