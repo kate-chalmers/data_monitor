@@ -3,10 +3,9 @@ source("./global_processing.R")
 # Pull break treated data and clean for analysis
 full_dat <- readRDS("S:/Data/WDP/Well being database/Automated database/output/break_treated_final_dataset.RDS") %>%
   rbind(oecd_avg_dat) %>%
-  # Voter turnout included due to infrequent updates
-  filter(!dimension == "ISCED11_1", time_period >= 2015, 
-         # Voter turnout is not updated but should eventually be
-         !measure %in% c(dropped_indics, "8_2"), !measure %in% inequality_dropped) %>%
+  filter(!dimension == "ISCED11_1", 
+         time_period >= 2015, 
+         !measure %in% inequality_dropped) %>%
   select(ref_area, time_period, measure, dimension, unit_measure, obs_value) %>%
   distinct() %>%
   mutate(unit_measure = str_remove_all(unit_measure, "_SUB")) 

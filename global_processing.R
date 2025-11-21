@@ -21,7 +21,9 @@ dropped_indics <- c(# Ad hoc indicators not on DE
                     "5_2_DEP", "10_2", "11_3_DEP", "7_1", "8_1", "14_3_DEP", "14_7_DEP")
 
 # Not published data
-inequality_dropped <- c("11_1_DEP", "2_9_DEP", "4_4_DEP", "7_3_DEP")
+inequality_dropped <- c("11_1_DEP", "2_9_DEP", "4_4_DEP", "7_3_DEP",
+                        # Voter turnout data is intermittent
+                        "8_2")
 
 dict <- readxl::read_excel("S:/Data/WDP/Well being database/Automated database/output/dictionary.xlsx") %>%
   mutate(
