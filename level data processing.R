@@ -133,7 +133,7 @@ latest_dat <- avg_vals %>%
   filter(label == "latest") %>%
   select(measure, ref_area, latest_year = time_period, latest = obs_value) 
 
-
+# Final cleaning 
 avg_vals <- point_change_dat %>%
   # Create cat group for easier defining of well-being dimensions
   mutate(measure2 = measure) %>%
@@ -220,6 +220,27 @@ avg_vals <- point_change_dat %>%
     )
   )
 
+saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page/data/latest point data.RDS")
+saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page/data/latest point data.RDS")
+saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page_fr/data/latest point data.RDS")
+saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page_fr/data/latest point data.RDS")
+
+
+gap_filler <- avg_vals %>%
+  distinct(measure) %>%
+  mutate(measure2 = measure) %>%
+  separate(measure2, into=c("cat", "subcat")) %>%
+  mutate(cat = as.numeric(cat),
+         subcat = as.numeric(subcat)) %>%
+  arrange(cat, subcat, measure) %>%
+  select(-subcat) %>%
+  mutate(measure = fct_infreq(measure))
+
+saveRDS(gap_filler, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page/data/gap filler.RDS")
+saveRDS(gap_filler, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page/data/gap filler.RDS")
+saveRDS(gap_filler, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page_fr/data/gap filler.RDS")
+saveRDS(gap_filler, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page_fr/data/gap filler.RDS")
+
 
 # Time series calculation -------------------------------------------------
 
@@ -250,25 +271,4 @@ saveRDS(ts_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_
 saveRDS(ts_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page_fr/data/time series.RDS")
 saveRDS(ts_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page_fr/data/time series.RDS")
 
-
-saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page/data/latest point data.RDS")
-saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page/data/latest point data.RDS")
-saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page_fr/data/latest point data.RDS")
-saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page_fr/data/latest point data.RDS")
-
-
-gap_filler <- avg_vals %>%
-  distinct(measure) %>%
-  mutate(measure2 = measure) %>%
-  separate(measure2, into=c("cat", "subcat")) %>%
-  mutate(cat = as.numeric(cat),
-         subcat = as.numeric(subcat)) %>%
-  arrange(cat, subcat, measure) %>%
-  select(-subcat) %>%
-  mutate(measure = fct_infreq(measure))
-
-saveRDS(gap_filler, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page/data/gap filler.RDS")
-saveRDS(gap_filler, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page/data/gap filler.RDS")
-saveRDS(gap_filler, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page_fr/data/gap filler.RDS")
-saveRDS(gap_filler, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page_fr/data/gap filler.RDS")
 

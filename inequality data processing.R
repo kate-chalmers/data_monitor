@@ -268,7 +268,6 @@ gap_dat <- tidy_dat %>%
       earliest > 1 & latest > 1 & earliest > latest ~ "narrowing",
       earliest < 1 & latest < 1 & earliest < latest ~ "narrowing",
       earliest < 1 & latest < 1 & earliest > latest ~ "widening",
-      # This doesn't work great with education since we don't have primary
       earliest < 1 & latest > 1 ~ paste0("Flip: ", tolower(dimension_long), " are now better off than population average"),
       earliest > 1 & latest < 1 ~ paste0("Flip: ", tolower(dimension_long), " are now worse off than population average"),
       abs(earliest - latest) < 0.05 ~ "no change",
@@ -302,12 +301,12 @@ earliest_dat <- tidy_dat %>%
 
 # Time series and final cleaning ------------------------------------------
 
-oecd_avg_ts <- timeSeriesAverage(full_dat, group_list) %>% filter(!measure %in% oecd_avg_measures_gap)
+oecd_avg_ts <- timeSeriesAverage(full_dat, group_list) %>% 
+  filter(!measure %in% oecd_avg_measures_gap)
 
 time_series_dat <- full_dat %>%
   rbind(oecd_avg_ts) %>%
   filter(!dimension == "_T") %>%
-  # filter(measure == "2_5", ref_area == "OECD") %>%
   mutate(ref_area = ifelse(grepl("OECD", ref_area), "OECD", ref_area)) %>%
   merge(gap_filler, by = c("ref_area", "measure", "dimension"), all = T) %>%
   left_join(tiers_dat) %>%
@@ -321,7 +320,6 @@ time_series_dat <- full_dat %>%
   arrange(measure, dimension, ref_area, time_period) %>%
   mutate(measure2 = measure) %>%
   separate(measure2, into = "cat") %>%
-  # filter(ref_area == "OECD", measure == "2_5") %>%
   mutate(
     latest = ifelse(is.na(latest) & !is.na(earliest), earliest, latest),
     latest_year = ifelse(is.na(latest_year) & !is.na(earliest_year), earliest_year, latest_year),
@@ -455,7 +453,6 @@ time_series_dat <- full_dat %>%
       gap_value == "No Change" ~ "No change",
       TRUE ~ gap_value
     ),
-    # gap_value = str_wrap(gap_value, 15),
     opacity = ifelse(grepl("No data", value_tidy), 0.6, 1)
   ) %>%
   select(-cat)
@@ -495,23 +492,6 @@ latest_total <- tidy_dat %>%
   ) %>%
   select(ref_area, measure, value_tidy, value_tidy_fr)
 
-
-
 saveRDS(latest_total, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/gap_page/data/latest total values.RDS")
 saveRDS(latest_total, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/gap_page_fr/data/latest total values.RDS")
-
-
-# gap_filler %>%
-#   mutate(measure2 = measure) %>%
-#   separate(measure2, into = c("cat")) %>%
-#   mutate(cat = as.numeric(cat)) %>%
-#   arrange(cat) %>%
-#   mutate(measure = fct_inorder(measure)) %>%
-#   merge(dict %>% select(measure, label)) %>%
-#   arrange(measure, ref_area) %>%
-#   select(label, measure, dimension, ref_area) %>%
-#   mutate(value = " ") %>%
-#   pivot_wider(names_from = "ref_area") %>%
-#   arrange(measure) %>%
-#   openxlsx::write.xlsx(., "S:/Data/WDP/Well being database/Data Monitor/data_monitor/quality checks/gap_quality_check.xlsx")
 

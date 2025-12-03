@@ -54,7 +54,7 @@ dict <- readxl::read_excel("S:/Data/WDP/Well being database/Automated database/o
 
 skills_sig <- data.frame(ref_area = c(all_countries, "OECD")) %>%
   mutate(
-    # reading
+    # Reading
     sig2012.6_1 = case_when(
       ref_area %in% c("AUT", "CHL", "COL", "CZE", "DNK", "EST", "IRL", "ISR", "ITA", 
                       "LTU", "MEX", "NZL", "PRT", "SWE", "GBR", "USA", "ARG", "BRA",
@@ -67,7 +67,7 @@ skills_sig <- data.frame(ref_area = c(all_countries, "OECD")) %>%
                       "DOM", "MLT", "MDA", "MNE", "ROU", "SGP", "URY") ~ "0",
       TRUE ~ "1"
     ),
-    # math
+    # Math
     sig2012.6_2 = case_when(
       ref_area %in% c("COL", "HUN", "ISR", "JPN", "LVA", "LTU", "SWE", "TUR", "GBR",
                       "HRV", "IDN", "MNE", "KAZ", "SRB", "SGP", "ARE", "URY") ~ "0",
@@ -78,7 +78,7 @@ skills_sig <- data.frame(ref_area = c(all_countries, "OECD")) %>%
                       "BRA", "HRV", "MDA", "PER", "ARE") ~ "0",
       TRUE ~ "1"
     ),
-    # science
+    # Science
     sig2012.6_3 = case_when(
       ref_area %in% c("CAN", "CHL", "COL", "CZE", "DNK", "FRA", "HUN", "ISR", "JPN",
                       "KOR", "LVA", "LTU", "MEX", "NZL", "PRT", "SVK", "SWE", "TUR",
@@ -106,8 +106,7 @@ oecd_avg_dat <- readRDS("//main.oecd.org/sdataWIS/Data/WDP/Well being database/A
   mutate(time_period = as.numeric(time_period),
          drop = case_when(
            obs_status == "B" & time_period == max(time_period) ~ 1
-         )
-  ) %>%
+         )) %>%
   group_by(measure) %>%
   mutate(drop = zoo::na.locf(drop, fromLast = T, na.rm = F),
          drop = case_when(is.na(drop) ~ 0, TRUE ~ drop)) %>%
