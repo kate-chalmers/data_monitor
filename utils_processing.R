@@ -1,7 +1,7 @@
 
 timeSeriesAverage <- function(full_df, dimension_name) {
   
-  # dimension_name <- group_list
+  # dimension_name <- "_T"
   # full_df <- tidy_dat
   
   full_df <- full_df %>% filter(ref_area %in% oecd_countries)
@@ -14,11 +14,41 @@ timeSeriesAverage <- function(full_df, dimension_name) {
     mutate(n=n()) %>%
     ungroup() %>%
     # Remove any years that have < 10 sample (removes data from request reporting in non-SILC years or spotty recent data)
-    filter(!n < 10)
+    filter(!n <= 10)
+    
+  # Monitor and update when data is less spotty
+  tidy_df <- tidy_df %>% filter(!measure %in% c("5_3", "10_1", "13_3") | !time_period == 2023,
+                                !measure %in% c("2_2", "2_8_DEP", "2_8_VER") | !time_period == 2024) 
+  
+  # Obesity and voter turnout have large gaps, fill in spaces to create OECD average
+  gap_filled_indics <- tidy_df %>% 
+    filter(measure %in% c("13_5", "8_2", "1_3", "1_3_VER", "1_6")) %>%
+    # Update max years periodically
+    mutate(max_year = case_when(
+      measure == "1_3" ~ 2023,
+      measure == "1_6" ~ 2023,
+      measure == "1_3_VER" ~ 2023,
+      measure == "8_2" ~ 2025,
+      measure == "13_5" ~ 2023,
+    )) %>%
+    group_by(measure, ref_area, dimension) %>%
+    complete(time_period = 2015:max_year,
+             unit_measure = unit_measure) %>%
+    mutate(obs_value = zoo::na.locf(obs_value, na.rm = F),
+           obs_value = zoo::na.locf(obs_value, fromLast = T, na.rm=F)) %>%
+    group_by(measure, unit_measure, dimension, time_period) %>%
+    mutate(n = n()) %>%
+    ungroup() %>%
+    select(-max_year)
+  
+  tidy_df <- tidy_df %>% 
+    filter(!measure %in% c("13_5", "8_2", "1_3", "1_3_VER", "1_6")) %>%
+    rbind(gap_filled_indics)
   
   # OECD time series by dimension -----------------------------------------
   
-  prepped_df <- tidy_df %>% filter(dimension %in% dimension_name)
+  prepped_df <- tidy_df %>%
+    filter(dimension %in% dimension_name)
   
   # List measures available in dimensions specified
   measures_avail <- prepped_df %>% distinct(measure) %>% pull()
@@ -66,6 +96,7 @@ timeSeriesAverage <- function(full_df, dimension_name) {
       }
     }
   }
+  
   
   # Calculate the average by measure, dimension, time period
   horizontal_ts <- cleaned_df %>%
@@ -144,6 +175,10 @@ timeSeriesAverage <- function(full_df, dimension_name) {
   }
   
   return(full_average)
+  
+  full_average %>% 
+    mutate(n = parse_number(ref_area)) %>%
+    filter(n < 15) %>% distinct(measure)
   
 }
 

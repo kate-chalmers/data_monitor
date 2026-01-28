@@ -3,6 +3,7 @@ source("./global.R")
 ui <- fluidPage(shinyjs::useShinyjs(),
                 tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "stylesheet.css")),
                 fluidRow(
+                  
                   useShinyjs(),
                   tags$head(tags$script(src="bounce.js")),
                   tags$head(tags$script(src="modal.js")),
@@ -323,11 +324,18 @@ server <- function(input, output, session) {
     
     desc_text <- paste0(short_df$definition)
     
+    if(is.na(short_df$note)) {
+      note_text <- ""
+    } else {
+      note_text <- paste0("<b>Note: </b>", short_df$note)
+    }
+
     indicator_text <- paste0(
       main_title, "<br>",
       "<b>Technical name: </b>", long_title, "<br>",
       "<b>Unit: </b>", unit_title, "<br><br>",
-      desc_text, "<br><br>"
+      desc_text, "<br><br>",
+      note_text
     )
     
     download_text <- paste0("<center>

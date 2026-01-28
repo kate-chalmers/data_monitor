@@ -77,7 +77,7 @@ ratio_dat <- tidy_dat %>%
   select(-test) %>%
   merge(dict %>% select(measure, direction)) %>%
   mutate(
-    across(all_of(!!group_list),
+    across(all_of(group_list),
            ~ case_when(
              direction == "positive" ~ .x / `_T`,
              TRUE ~ `_T` / .x
@@ -457,7 +457,10 @@ time_series_dat <- full_dat %>%
   ) %>%
   select(-cat)
 
+# Versioning
+saveRDS(time_series_dat, paste0("S:/Data/WDP/Well being database/Data Monitor/data_monitor/versioning/gap_full inequalities data", todays_date,".RDS"))
 
+# For app use
 saveRDS(time_series_dat, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/gap_page/data/full inequalities data.RDS")
 saveRDS(time_series_dat, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/gap_page_fr/data/full inequalities data.RDS")
 
@@ -492,6 +495,10 @@ latest_total <- tidy_dat %>%
   ) %>%
   select(ref_area, measure, value_tidy, value_tidy_fr)
 
+# Versioning
+saveRDS(latest_total, paste0("S:/Data/WDP/Well being database/Data Monitor/data_monitor/versioning/gap_latest total values_", todays_date ,".RDS"))
+
+# For app use
 saveRDS(latest_total, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/gap_page/data/latest total values.RDS")
 saveRDS(latest_total, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/gap_page_fr/data/latest total values.RDS")
 

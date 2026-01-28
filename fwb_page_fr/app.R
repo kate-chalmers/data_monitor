@@ -334,11 +334,18 @@ server <- function(input, output, session) {
     
     desc_text <- paste0(short_df$definition)
     
+    if(short_df$note == "") {
+      note_text <- ""
+    } else {
+      note_text <- paste0(short_df$note)
+    }
+    
     indicator_text <- paste0(
       main_title, "<br>",
-      # "<b>Intitulé technique : </b>", long_title, "<br>",
-      "<b>Unité de mesure : </b>", unit_title, "<br><br>",
-      desc_text, "<br><br>"
+      "<b>Technical name: </b>", long_title, "<br>",
+      "<b>Unit: </b>", unit_title, "<br><br>",
+      desc_text, "<br><br>",
+      "<b>Note: </b>", note_text
     )
     
     download_text <- paste0("<center>

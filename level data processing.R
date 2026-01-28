@@ -108,7 +108,7 @@ point_change_dat <- avg_vals %>%
          ) %>%
   select(-latest) %>%
   merge(gap_filler, by = c("ref_area", "measure", "unit_measure"), all = T) %>%
-  merge(skills_sig, by = c("ref_area", "measure"), all = T) %>% 
+  merge(skills_sig, by = c("ref_area", "measure"), all = T) %>% View()
   mutate(
     perf_val = case_when(
       sig == "0" & !is.na(perf_val) ~ "goldenrod",
@@ -220,6 +220,10 @@ avg_vals <- point_change_dat %>%
     )
   )
 
+# Versioning
+saveRDS(avg_vals, paste0("S:/Data/WDP/Well being database/Data Monitor/data_monitor/versioning/cwb_latest point data_", todays_date,".RDS"))
+
+# For app use
 saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page/data/latest point data.RDS")
 saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page/data/latest point data.RDS")
 saveRDS(avg_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page_fr/data/latest point data.RDS")
@@ -265,7 +269,10 @@ ts_vals <- ts_vals %>%
   ) %>%
   select(-unit_measure) 
 
+# Versioning
+saveRDS(ts_vals, paste0("S:/Data/WDP/Well being database/Data Monitor/data_monitor/versioning/cwb_time series_", todays_date,".RDS"))
 
+# For app use
 saveRDS(ts_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page/data/time series.RDS")
 saveRDS(ts_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/fwb_page/data/time series.RDS")
 saveRDS(ts_vals, "S:/Data/WDP/Well being database/Data Monitor/data_monitor/cwb_page_fr/data/time series.RDS")
