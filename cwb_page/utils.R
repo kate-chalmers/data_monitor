@@ -164,9 +164,9 @@ pillBox <- function(avg_df, cluster_filter) {
           mutate(label_item = paste0("<img src='", image, "' height=10 width=10> ", label_name))
         
         # If more than 7 items, split into multiple columns
-        if(count > 7) {
+        if(count > 9) {
           # Calculate number of columns (1 column per 7 items, max column height = 7)
-          num_cols <- ceiling(count / 7)
+          num_cols <- ceiling(count / 9)
           items_per_col <- ceiling(count / num_cols)
           
           # Split data into columns

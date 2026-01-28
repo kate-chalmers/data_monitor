@@ -311,7 +311,7 @@ server <- function(input, output, session) {
     
     req(input$clicked_class)
     
-    long_df <- readxl::read_excel("./data/hows_life_dictionary.xlsx")
+    long_df <- openxlsx::read.xlsx("https://github.com/kate-chalmers/data_monitor/raw/refs/heads/main/hows_life_dictionary.xlsx")
     # heatmap_dat <- readRDS("./data/final dataset.RDS")
     
     short_df <- long_df %>% filter(measure == input$clicked_class)
@@ -324,7 +324,7 @@ server <- function(input, output, session) {
     
     desc_text <- paste0(short_df$definition)
     
-    if(is.na(short_df$note)) {
+    if(is.na(short_df$note) & !countryName() == "OECD average") {
       note_text <- ""
     } else {
       note_text <- paste0("<b>Note: </b>", short_df$note)

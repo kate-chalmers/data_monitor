@@ -49,7 +49,7 @@ server <- function(input, output, session) {
 
     req(input$clicked_class)
 
-    long_df <- readxl::read_excel("./data/hows_life_dictionary.xlsx")
+    long_df <- openxlsx::read.xlsx("https://github.com/kate-chalmers/data_monitor/raw/refs/heads/main/hows_life_dictionary.xlsx")
 
     short_df <- long_df %>% filter(measure == input$clicked_class)
 
@@ -60,10 +60,11 @@ server <- function(input, output, session) {
     unit_title <- paste0("<i>", short_df$unit, "</i>")
 
     desc_text <- paste0(short_df$definition)
-    if(short_df$note == "") {
+
+    if(is.na(short_df$note)) {
       note_text <- ""
     } else {
-      note_text <- paste0(short_df$note)
+      note_text <- paste0("<b>Note: </b>", short_df$note)
     }
 
     indicator_text <- paste0(
@@ -71,7 +72,7 @@ server <- function(input, output, session) {
       "<b>Technical name: </b>", long_title, "<br>",
       "<b>Unit: </b>", unit_title, "<br><br>",
       desc_text, "<br><br>",
-      "<b>Note: </b>", note_text
+      note_text
     )
 
     download_text <- paste0("<center>
@@ -187,9 +188,9 @@ server <- function(input, output, session) {
       fluidRow(align = "center", style="margin-top:0px;",
                HTML(
                  "<br>
-                  <span style='color:#CF597E!important;'>●</span> deteriorated
-                  <span style='color:goldenrod!important;'>●</span> no clear change
                   <span style='color:#0F8554!important;'>●</span> improved
+                  <span style='color:goldenrod!important;'>●</span> no clear change
+                  <span style='color:#CF597E!important;'>●</span> deteriorated
                   <span style='color:#999999!important;'>●</span> not enough data to assess change
                  ")
       ),
@@ -418,8 +419,51 @@ server <- function(input, output, session) {
       indicator_names <- plot_df_raw %>%
         group_by(perf_val_name) %>%
         summarize(
-          label_text = paste0( "<img src='", image,"' height=10 width=10> ", label, collapse = "<br>")
-        )
+          n = n(),
+          .groups = 'drop'
+        ) %>%
+        mutate(
+          label_text = map2_chr(perf_val_name, n, function(name, count) {
+            # Get the data for this group
+            group_data <- plot_df_raw %>%
+              filter(perf_val_name == name) %>%
+              mutate(label_item = paste0("<img src='", image, "' height=10 width=10> ", label))
+
+            # If more than 7 items, split into multiple columns
+            if(count > 9) {
+              # Calculate number of columns (1 column per 7 items, max column height = 7)
+              num_cols <- ceiling(count / 9)
+              items_per_col <- ceiling(count / num_cols)
+
+              # Split data into columns
+              cols <- lapply(1:num_cols, function(i) {
+                start_idx <- (i - 1) * items_per_col + 1
+                end_idx <- min(i * items_per_col, count)
+                group_data %>% slice(start_idx:end_idx) %>% pull(label_item)
+              })
+
+              # Build table columns HTML
+              cols_html <- sapply(cols, function(col_items) {
+                paste0(
+                  "<td style='vertical-align:top;padding-right:10px;min-width:120px;'>",
+                  paste(col_items, collapse = "<br>"),
+                  "</td>"
+                )
+              })
+
+              # Create table with dynamic columns
+              paste0(
+                "<table style='width:100%;border-collapse:collapse;'><tr>",
+                paste(cols_html, collapse = ""),
+                "</tr></table>"
+              )
+            } else {
+              # Single column for 7 or fewer items
+              paste(group_data$label_item, collapse = "<br>")
+            }
+          })
+        ) %>%
+        select(-n)
 
       plot_df <- plot_df_raw %>%
         count(perf_val, perf_val_light, perf_val_name) %>%
@@ -428,7 +472,7 @@ server <- function(input, output, session) {
           pct = 100 * n / sum(n)
         ) %>%
         merge(indicator_names, by = "perf_val_name") %>%
-        arrange(match(perf_val_name, rev(priority))) %>%
+        arrange(match(perf_val_name, priority)) %>%
         mutate(
           first_seg = row_number() == 1L,
           last_seg  = row_number() == n(),

@@ -5,7 +5,7 @@ full_dat <- readRDS("S:/Data/WDP/Well being database/Automated database/output/b
   rbind(oecd_avg_dat) %>%
   filter(!dimension == "ISCED11_1", 
          time_period >= 2015, 
-         !measure %in% inequality_dropped) %>%
+         !measure %in% c(dropped_indics, inequality_dropped)) %>%
   select(ref_area, time_period, measure, dimension, unit_measure, obs_value) %>%
   distinct() %>%
   mutate(unit_measure = str_remove_all(unit_measure, "_SUB")) 
