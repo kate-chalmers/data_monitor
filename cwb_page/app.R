@@ -59,9 +59,9 @@ ui <- fluidPage(shinyjs::useShinyjs(),
                                          div(class = "card-grow", uiOutput("currentWellbeingSummary")),
                                          HTML(
                                            "<br>
-                                            <span style='color:#CF597E !important;'>●</span> deteriorated  
-                                            <span style='color:goldenrod !important;'>●</span> no clear change 
                                             <span style='color:#0F8554 !important;'>●</span> improved
+                                            <span style='color:goldenrod !important;'>●</span> no clear change 
+                                            <span style='color:#CF597E !important;'>●</span> deteriorated  
                                             <span style='color:#999999 !important;'>●</span> not enough data to assess change
                                            ")
                                   ),
@@ -98,7 +98,7 @@ server <- function(input, output, session) {
   observeEvent(c(input$countrySelector, input$allToggle, input$orderButton), {
     
     # input <- c()
-    # input$countrySelector <- "HUN"
+    # input$countrySelector <- "FIN"
     # input$allToggle <- 2
     
     avg_vals <- avg_vals_full %>% filter(startsWith(ref_area, input$countrySelector))

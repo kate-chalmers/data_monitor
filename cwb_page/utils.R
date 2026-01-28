@@ -127,8 +127,8 @@ areaPlotter <- function(df) {
 
 pillBox <- function(avg_df, cluster_filter) {
   
-  # avg_df <- avg_vals %>% filter(ref_area == "BEL")
-  # cluster_filter <- material_headline
+  # avg_df <- avg_vals
+  # cluster_filter <- c(material_headline
   
   priority <- c("Improving", "No significant change", "Deteriorating", "Not enough data")
   
@@ -153,10 +153,52 @@ pillBox <- function(avg_df, cluster_filter) {
   indicator_names <- plot_df_raw %>% 
     group_by(perf_val_name) %>%
     summarize(
-      label_text = paste0(
-        "<img src='", image,"' height=10 width=10>",
-        label_name, collapse = "<br>")
-    )
+      n = n(),
+      .groups = 'drop'
+    ) %>%
+    mutate(
+      label_text = map2_chr(perf_val_name, n, function(name, count) {
+        # Get the data for this group
+        group_data <- plot_df_raw %>%
+          filter(perf_val_name == name) %>%
+          mutate(label_item = paste0("<img src='", image, "' height=10 width=10> ", label_name))
+        
+        # If more than 7 items, split into multiple columns
+        if(count > 7) {
+          # Calculate number of columns (1 column per 7 items, max column height = 7)
+          num_cols <- ceiling(count / 7)
+          items_per_col <- ceiling(count / num_cols)
+          
+          # Split data into columns
+          cols <- lapply(1:num_cols, function(i) {
+            start_idx <- (i - 1) * items_per_col + 1
+            end_idx <- min(i * items_per_col, count)
+            group_data %>% slice(start_idx:end_idx) %>% pull(label_item)
+          })
+          
+          # Build table columns HTML
+          cols_html <- sapply(cols, function(col_items) {
+            paste0(
+              "<td style='vertical-align:top;padding-right:10px;min-width:120px;'>",
+              paste(col_items, collapse = "<br>"),
+              "</td>"
+            )
+          })
+          
+          # Create table with dynamic columns
+          paste0(
+            "<table style='width:100%;border-collapse:collapse;'><tr>",
+            paste(cols_html, collapse = ""),
+            "</tr></table>"
+          )
+        } else {
+          # Single column for 7 or fewer items
+          paste(group_data$label_item, collapse = "<br>")
+        }
+      })
+    ) %>%
+    select(-n)
+    
   
   plot_df <- plot_df_raw %>%
     count(perf_val, perf_val_light, perf_val_name) %>%
@@ -165,7 +207,7 @@ pillBox <- function(avg_df, cluster_filter) {
       pct = 100 * n / sum(n)
     ) %>%
     merge(indicator_names, by = "perf_val_name") %>%
-    arrange(match(perf_val_name, rev(priority))) %>%
+    arrange(match(perf_val_name, priority)) %>%
     mutate(
       first_seg = row_number() == 1L,
       last_seg  = row_number() == n(),
