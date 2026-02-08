@@ -61,10 +61,11 @@ server <- function(input, output, session) {
 
     desc_text <- paste0(short_df$definition)
 
-    if(is.na(short_df$note)) {
-      note_text <- ""
-    } else {
+
+    if(!is.na(short_df$note) & countryName() == "the OECD") {
       note_text <- paste0("<b>Note: </b>", short_df$note)
+    } else {
+      note_text <- ""
     }
 
     indicator_text <- paste0(
