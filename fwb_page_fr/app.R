@@ -321,7 +321,7 @@ server <- function(input, output, session) {
     
     req(input$clicked_class)
     
-    long_df <- readxl::read_excel("./data/hows_life_dictionary.xlsx")
+    long_df <- openxlsx::read.xlsx("https://github.com/kate-chalmers/data_monitor/raw/refs/heads/main/hows_life_dictionary_fr.xlsx")
     # heatmap_dat <- readRDS("./data/final dataset.RDS")
     
     short_df <- long_df %>% filter(measure == input$clicked_class)
@@ -334,18 +334,18 @@ server <- function(input, output, session) {
     
     desc_text <- paste0(short_df$definition)
     
-    if(short_df$note == "") {
-      note_text <- ""
+    if(!is.na(short_df$note) & countryName() == "dans la zone OCDE") {
+      note_text <- paste0("<b>Note: </b>", short_df$note)
     } else {
-      note_text <- paste0(short_df$note)
+      note_text <- ""
     }
     
     indicator_text <- paste0(
       main_title, "<br>",
-      "<b>Technical name: </b>", long_title, "<br>",
-      "<b>Unit: </b>", unit_title, "<br><br>",
+      # "<b>Intitulé technique : </b>", long_title, "<br>",
+      "<b>Unité de mesure : </b>", unit_title, "<br><br>",
       desc_text, "<br><br>",
-      "<b>Note: </b>", note_text
+      note_text
     )
     
     download_text <- paste0("<center>

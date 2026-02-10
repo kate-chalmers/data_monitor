@@ -5,6 +5,7 @@ tidy_dat <- readRDS("S:/Data/WDP/Well being database/Automated database/output/b
   rbind(oecd_avg_dat) %>%
   filter(dimension == "_T", time_period >= 2015, !measure %in% dropped_indics) %>%
   select(ref_area, time_period, measure, dimension, unit_measure, obs_value) %>%
+  mutate(unit_measure = ifelse(measure == "3_3", "PT_POP", unit_measure)) %>%
   left_join(dict %>% select(measure, threshold, direction), by=c("measure")) %>%
   distinct() 
 
