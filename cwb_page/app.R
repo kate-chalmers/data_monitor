@@ -203,7 +203,7 @@ server <- function(input, output, session) {
         
         cluster_html <- HTML(paste("<span class='cluster-header' style='font-size:22px;color:#101d40!important;'>Material conditions in ", countryName(),"</span>
                               <br>
-                              The conditions that shape people’s economic options like <img src='income and wealth.png' width=0 height=0> income and wealth, <img src='housing.png' width=0 height=0> housing, and <img src='work and job quality.png' width=0 height=0> work and job quality.
+                              The conditions that shape people’s economic options like income and wealth, housing, and work and job quality.
                               <br>
                               <br>"))
         
@@ -212,7 +212,7 @@ server <- function(input, output, session) {
         cluster_html <- HTML(paste("<br>
                               <span class='cluster-header' style='font-size:22px; color:#101d40!important;'>Quality of life in ", countryName(), "</span>
                               <br>
-                              The conditions that reflect people's quality of life: <img src='health.png' width=0 height=0> health, <img src='knowledge and skills.png' width=0 height=0> knowledge and skills, <img src='environmental quality.png' width=0 height=0> environmental quality, <img src='subjective wellbeing.png' width=0 height=0> subjective well-being and <img src='safety.png' width=0 height=0> safety.
+                              The conditions that reflect people's quality of life: health, knowledge and skills, environmental quality, subjective well-being and safety.
                               <br>
                               <br>"))
         
@@ -326,6 +326,8 @@ server <- function(input, output, session) {
     
     if(!is.na(short_df$note) & countryName() == "the OECD") {
       note_text <- paste0("<b>Note: </b>", short_df$note)
+    } else if(input$clicked_class %in% c("4_1", "4_2", "4_3", "7_2")) {
+      note_text <- paste0("<b>Note: </b> Time frame extended from usual 2015-latest to 2004-latest due to limited data availability.")
     } else {
       note_text <- ""
     }

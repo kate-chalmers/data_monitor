@@ -58,9 +58,9 @@ ui <- fluidPage(shinyjs::useShinyjs(),
                                          div(class = "card-grow", uiOutput("currentWellbeingSummary")),
                                          HTML(
                                            "<br>
-                                            <span style='color:#CF597E !important;'>●</span> dégradation
-                                            <span style='color:goldenrod !important;'>●</span> stabilité
                                             <span style='color:#0F8554 !important;'>●</span> amélioration
+                                            <span style='color:goldenrod !important;'>●</span> stabilité
+                                            <span style='color:#CF597E !important;'>●</span> dégradation
                                             <span style='color:#999999 !important;'>●</span> données insuffisantes
                                            ")
                                   ),
@@ -323,6 +323,8 @@ server <- function(input, output, session) {
     
     if(!is.na(short_df$note) & countryName() == "dans la zone OCDE") {
       note_text <- paste0("<b>Note: </b>", short_df$note)
+    } else if(input$clicked_class %in% c("4_1", "4_2", "4_3", "7_2")) {
+      note_text <- paste0("<b>Note: </b>La période a été étendue de la plage habituelle 2015–aujourd'hui à 2004–aujourd'hui en raison de la disponibilité limitée des données.")
     } else {
       note_text <- ""
     }

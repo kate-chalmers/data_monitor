@@ -1,11 +1,12 @@
+library(tidyverse)
 source("./global_processing.R")
 
 # Pull break treated data and clean for analysis
-tidy_dat <- readRDS("S:/Data/WDP/Well being database/Automated database/output/break_treated_final_dataset.RDS") %>%
-  rbind(oecd_avg_dat) %>%
-  filter(dimension == "_T", time_period >= 2015, !measure %in% dropped_indics) %>%
+tidy_dat <- readRDS("S:/Data/WDP/Well being database/Automated database/output/break_treated_final_dataset.RDS") %>% 
+  # rbind(oecd_avg_dat) %>%
+  filter(dimension == "_T", !measure %in% dropped_indics) %>%
   select(ref_area, time_period, measure, dimension, unit_measure, obs_value) %>%
-  mutate(unit_measure = ifelse(measure == "3_3", "PT_POP", unit_measure)) %>%
+  # mutate(unit_measure = ifelse(measure == "3_3", "PT_POP", unit_measure)) %>%
   left_join(dict %>% select(measure, threshold, direction), by=c("measure")) %>%
   distinct() 
 
@@ -25,10 +26,22 @@ gap_filler <- tidy_dat %>%
 # Card data point calculations --------------------------------------------
 
 # Calculate latest and earliest values for OECD average 
-avg_vals <- twoPointAverage(tidy_dat, "_T") %>% 
+
+# Remove TUS values for OECD average
+avg_oecd_dat <- tidy_dat %>% filter(time_period >= 2015, !measure %in% c("4_1", "4_2", "4_3", "7_2"))
+
+avg_vals <- twoPointAverage(avg_oecd_dat, "_T") %>% 
   filter(!measure %in% oecd_avg_measures) %>%
   select(-label) %>%
-  mutate(ref_area = ifelse(grepl("OECD", ref_area), "OECD", ref_area))
+  mutate(ref_area = ifelse(grepl("OECD", ref_area), "OECD", ref_area)) 
+
+# Calculate average using TUS methodology
+avg_vals <- twoPointAverageTUS(tidy_dat, "_T") %>%
+  rbind(avg_vals)
+
+# Set aside TUS data
+tus_dat <- tidy_dat %>% filter(measure %in% c("4_1", "4_2", "4_3", "7_2"))
+tidy_dat <- tidy_dat %>% filter(time_period >= 2015, !measure %in% c("4_1", "4_2", "4_3", "7_2")) %>% rbind(tus_dat)
 
 # Combine with full dataset and define which values are earliest and latest
 avg_vals <- tidy_dat %>% 
@@ -109,7 +122,7 @@ point_change_dat <- avg_vals %>%
          ) %>%
   select(-latest) %>%
   merge(gap_filler, by = c("ref_area", "measure", "unit_measure"), all = T) %>%
-  merge(skills_sig, by = c("ref_area", "measure"), all = T) %>% View()
+  merge(skills_sig, by = c("ref_area", "measure"), all = T) %>% 
   mutate(
     perf_val = case_when(
       sig == "0" & !is.na(perf_val) ~ "goldenrod",
@@ -133,6 +146,8 @@ point_change_dat <- avg_vals %>%
 latest_dat <- avg_vals %>%
   filter(label == "latest") %>%
   select(measure, ref_area, latest_year = time_period, latest = obs_value) 
+
+avg_vals %>% filter(measure == "4_1")
 
 # Final cleaning 
 avg_vals <- point_change_dat %>%

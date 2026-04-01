@@ -1,5 +1,4 @@
 source("./utils_processing.R")
-library(tidyverse)
 
 todays_date <- Sys.Date()
 
@@ -26,6 +25,18 @@ dropped_indics <- c(# Ad hoc indicators not on DE
 inequality_dropped <- c("11_1_DEP", "2_9_DEP", "4_4_DEP", "7_3_DEP",
                         # Voter turnout data is intermittent and no viable OECD average possible
                         "8_2")
+
+material_headline <- c("1_1", "1_2", "1_3", "2_1", "2_2", "2_7", "3_1", "3_2")
+quality_headline <- c("5_1", "5_3", "6_2", "6_1_DEP", "9_2", "9_3", "10_1", "10_2_DEP", "11_1", "11_2")
+community_headline <- c("4_1", "4_3", "7_1_DEP", "7_2", "8_1_DEP", "8_2")
+nature_headline <- c("12_7", "12_8", "12_10")
+human_headline <- c("13_1", "13_2", "13_3")
+social_headline <- c("14_1", "14_3", "14_5")
+econ_headline <- c("15_1", "15_6", "15_7")
+
+headline_indicators <- c(material_headline, quality_headline, community_headline,
+                         nature_headline, human_headline, social_headline, econ_headline)
+
 
 dict <- readxl::read_excel("S:/Data/WDP/Well being database/Automated database/output/dictionary.xlsx") %>%
   mutate(

@@ -201,9 +201,9 @@ server <- function(input, output, session) {
       fluidRow(align = "center", style="margin-top:0px;",
                HTML(
                  "<br>
-                  <span style='color:#CF597E !important;'>●</span> dégradation
-                  <span style='color:goldenrod !important;'>●</span> stabilité
                   <span style='color:#0F8554 !important;'>●</span> amélioration
+                  <span style='color:goldenrod !important;'>●</span> stabilité
+                  <span style='color:#CF597E !important;'>●</span> dégradation
                   <span style='color:#999999 !important;'>●</span> données insuffisantes
                   ")
       ),

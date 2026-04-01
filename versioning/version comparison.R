@@ -1,3 +1,4 @@
+library(tidyverse)
 source("./global_processing.R")
 
 comparison_versions <- paste0("./versioning/") %>%
@@ -5,14 +6,14 @@ comparison_versions <- paste0("./versioning/") %>%
   file.info() %>%
   as.data.frame() %>%
   rownames_to_column() %>%
-  filter(grepl("cwb_latest point", rowname)) %>%
+  filter(grepl("cwb_latest point", rowname), !grepl("launch", rowname)) %>%
   arrange(desc(mtime)) %>%
   slice_head(n = 2) %>%
   mutate(
     min_or_max = case_when(mtime == min(mtime) ~ "min", 
                         mtime == max(mtime) ~ "max", 
                         TRUE ~ "0")
-  ) %>%
+    ) %>%
   filter(!min_or_max == "0") %>%
   select(rowname, min_or_max)
 
@@ -21,15 +22,11 @@ previous_version <- comparison_versions %>% filter(!min_or_max == "max") %>% pul
 
 latest_dat <- readRDS(latest_version) 
 
-latest_dat %>% filter(measure == "1_1", ref_area == "AUT") %>% select(ref_area, latest)
-  
 latest_dat <- latest_dat %>%
   select(measure, ref_area, perf_val_name, icon) %>%
   rename(new_perf = perf_val_name, new_icon = icon) 
 
 previous_dat <- readRDS(previous_version) 
-
-previous_dat %>% filter(measure == "1_1", ref_area == "AUT") %>% select(ref_area, latest)
 
 previous_dat <- previous_dat %>%
   select(measure, ref_area, perf_val_name, icon) %>%
@@ -87,21 +84,24 @@ ranking_change <- version_differences %>%
   select(measure,ref_area, performance = new_perf, ranking_old = old_icon, ranking_new = new_icon, ranking_change = improvement_in_position) %>%
   merge(dict %>% select(measure, label)) %>%
   relocate(label, .before = everything()) %>%
-  arrange(measure, ranking_change)
+  arrange(measure, ranking_change) %>%
+  distinct()
 
 
 performance_change <- version_differences %>%
   filter(!improvements_in_ts == "no change") %>%
   # Remove next update
-  filter(!measure == "6_1_DEP") %>%
   select(measure,ref_area, ranking = new_icon, performance_prev = old_perf, performance_new = new_perf, performance_change = improvements_in_ts) %>%
   merge(dict %>% select(measure, label)) %>%
   relocate(label, .before = everything()) %>%
-  arrange(measure, performance_change)
+  arrange(measure, performance_change) %>%
+  distinct()
 
 performance_change %>% 
   count(label, performance_change) %>%
-  arrange(label, -n)
+  arrange(label, -n) %>%
+  filter(!performance_change == "Performance evaluation now available") %>%
+  pivot_wider(names_from = "performance_change", values_from = "n") %>% View()
 
 
 # Check any losses
@@ -117,5 +117,5 @@ previous_dat %>%
 getwd()
 require(openxlsx)
 list_of_datasets <- list("Performance changes" = performance_change, "Tier changes" = ranking_change)
-write.xlsx(list_of_datasets, file = "S:/Data/WDP/Well being database/Data Monitor/data_monitor/versioning/version differences/data monitor changes_feb2026.xlsx")
+write.xlsx(list_of_datasets, file = paste0("S:/Data/WDP/Well being database/Data Monitor/data_monitor/versioning/version differences/data monitor changes_", todays_date,".xlsx"))
 

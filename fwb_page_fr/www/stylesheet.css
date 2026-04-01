@@ -24,7 +24,7 @@ a, a:hover, a:visited {
 
 .vis-text .hidden-text, .head-show + .head-hide {
   visibility: hidden;
-  width: 120px;
+  min-width: 120px;
   background-color: white;
   text-align: left;
   border-radius: 6px;
@@ -245,8 +245,8 @@ body > div.container-fluid > div:nth-child(2) > div:nth-child(1) > div {
 }
 
 .hidden-text {
+  min-width: 120px;
   padding: 5px;
-  width: 120px;
 }
 
 .head-hide {

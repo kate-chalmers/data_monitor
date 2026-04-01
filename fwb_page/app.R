@@ -58,9 +58,9 @@ ui <- fluidPage(shinyjs::useShinyjs(),
                                          div(class = "card-grow", uiOutput("futureWellbeingSummary")),
                                          HTML(
                                            "<br>
-                                            <span style='color:#CF597E !important;'>●</span> deteriorated  
-                                            <span style='color:goldenrod !important;'>●</span> no clear change 
                                             <span style='color:#0F8554 !important;'>●</span> improved
+                                            <span style='color:goldenrod !important;'>●</span> no clear change 
+                                            <span style='color:#CF597E !important;'>●</span> deteriorated  
                                             <span style='color:#999999 !important;'>●</span> not enough data to assess change
                                            ")
                                   ),

@@ -1,8 +1,9 @@
+library(tidyverse)
 source("./global_processing.R")
 
 # Pull break treated data and clean for analysis
 full_dat <- readRDS("S:/Data/WDP/Well being database/Automated database/output/break_treated_final_dataset.RDS") %>%
-  rbind(oecd_avg_dat) %>%
+  # rbind(oecd_avg_dat) %>%
   filter(!dimension == "ISCED11_1", 
          time_period >= 2015, 
          !measure %in% c(dropped_indics, inequality_dropped)) %>%
